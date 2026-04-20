@@ -1,0 +1,149 @@
+<html>
+  <head>
+    <title>30XIIS-E</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="calculator">
+        <div class="header">
+          <div class="model-name">30XIIS-E</div>
+          <div class="subheader">An emulator for the TI-30XIIS* user interface</div>
+        </div>
+        <div class="display">
+          <div class="display-expression" id="display-expression"></div>
+          <div class="display-main" id="display-main"></div>
+        </div>
+    
+        <div class="keys">
+          <!-- Row 1 -->
+          <button class="ctrl" id="btnSecond">2nd</button>
+    
+          <button class="func">
+            <span class="btn-secondary">SCI/ENG</span>DEG
+          </button>
+    
+          <button class="func" onclick="deleteChar()">
+            <span class="btn-secondary">INS</span>DEL
+          </button>
+    
+          <button class="func"></button>
+          <button class="func"></button>
+    
+          <!-- Row 2 -->
+          <button class="func enlargeText" onclick="handleLogOrTenPower()">
+            <span class="btn-secondary enlargeText">10ˣ</span>log
+          </button>
+          <button class="func"><span class="btn-secondary">F◄►D</span>PBR</button>
+          <button class="func"><span class="btn-secondary">R↔P</span>° ′ ″</button>
+          <button class="func"></button>
+          <button class="func"></button>
+          <!-- Row 3 -->
+          <button class="func enlargeText" onclick="handleLnOrExp()">
+            <span class="btn-secondary enlargeText">eˣ</span>ln
+          </button>
+    
+          <button class="func">
+            <span class="btn-secondary" style="font-size: 7px">A b/c◄►d/e</span>A
+            b/c
+          </button>
+    
+          <button class="func"><span class="btn-secondary">STAT</span>DATA</button>
+          <button class="func">
+            <span class="btn-secondary">EXIT STAT</span>STATVAR
+          </button>
+    
+          <button class="func" onclick="clearAll()">
+            <span class="btn-secondary"></span>CLEAR
+          </button>
+    
+          <!-- Row 4 -->
+          <button class="func enlargeText" onclick="handleHypOrPi()">
+            <span class="btn-secondary">HYP</span>π
+          </button>
+    
+          <button class="func"><span class="btn-secondary">sin⁻¹</span>sin</button>
+    
+          <button class="func"><span class="btn-secondary">cos⁻¹</span>cos</button>
+    
+          <button class="func"><span class="btn-secondary">tan⁻¹</span>tan</button>
+    
+          <button class="func"></button>
+    
+          <!-- Row 5 -->
+          <button class="func enlargeText" onclick="handlePowerOrNthRoot()">
+            <span class="btn-secondary enlargeText">ⁿ√x</span>^
+          </button>
+    
+          <button class="func enlargeText" onclick="handleEeOrReciprocal()">
+            <span class="btn-secondary enlargeText">EE</span>x⁻¹
+          </button>
+    
+          <button class="func enlargeText" onclick="addParen('(')">
+            <span class="btn-secondary">%</span>(
+          </button>
+          <button class="func enlargeText" onclick="addParen(')')">
+            <span class="btn-secondary">,</span>)
+          </button>
+    
+          <button class="op" onclick="setOperator('÷')">
+            <span class="btn-secondary">K</span>÷
+          </button>
+    
+          <!-- Row 6 -->
+          <button class="func enlargeText" onclick="handleSqrtOrSquare()">
+            <span class="btn-secondary enlargeText">x²</span>√
+          </button>
+    
+          <button class="num" onclick="inputNumber('7')">7</button>
+          <button class="num" onclick="inputNumber('8')">8</button>
+          <button class="num" onclick="inputNumber('9')">9</button>
+    
+          <button class="op" onclick="setOperator('×')">×</button>
+    
+          <!-- Row 7 -->
+          <button class="func">
+            <span class="btn-secondary">CLRVAR</span>MEMVAR
+          </button>
+    
+          <button class="num" onclick="inputNumber('4')">4</button>
+          <button class="num" onclick="inputNumber('5')">5</button>
+          <button class="num" onclick="inputNumber('6')">6</button>
+    
+          <button class="op" onclick="setOperator('−')">−</button>
+    
+          <!-- Row 8 -->
+          <button class="func" onclick="handleRclOrSto()">
+            <span class="btn-secondary">RCL</span>STO►
+          </button>
+    
+          <button class="num" onclick="inputNumber('1')">1</button>
+          <button class="num" onclick="inputNumber('2')">2</button>
+          <button class="num" onclick="inputNumber('3')">3</button>
+    
+          <button class="op" onclick="setOperator('+')">+</button>
+    
+          <!-- Row 9 -->
+          <button class="func"><span class="btn-secondary">OFF</span>ON</button>
+    
+          <button class="num" onclick="handleZeroOrReset()">
+            <span class="btn-secondary">reset</span>0
+          </button>
+          <button class="num" onclick="inputNumber('.')">
+            <span class="btn-secondary">fix</span>.
+          </button>
+    
+          <button class="num" onclick="toggleSign()">
+            <span class="btn-secondary">ans</span>(−)
+          </button>
+    
+          <button class="op" onclick="calculate()">=</button>
+        </div>
+      </div>
+      <div class="disc">
+        *TI-30XIIS is a trademark of Texas Instruments. This site is not affiliated
+        with, endorsed by, or sponsored by Texas Instruments
+      </div>
+    </div>
+  </body>
+</html>
+  
