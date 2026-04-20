@@ -1,7 +1,5 @@
 let display = '0';
 let currentInput = '';
-let operator = null;
-let previousValue = null;
 let secondMode = false;
 let memoryValue = null;
 let pendingRootIndex = null;
@@ -126,18 +124,6 @@ function calculate() {
 }
 
 /* ---------- Functions ---------- */
-function sqrt() {
-  currentInput = String(Math.sqrt(applyEE()));
-  display = currentInput;
-  updateDisplay();
-}
-
-function square() {
-  currentInput = String(Math.pow(applyEE(), 2));
-  display = currentInput;
-  updateDisplay();
-}
-
 function reciprocal() {
   // First finish EE if active
   applyEE();
@@ -148,12 +134,6 @@ function reciprocal() {
   expression = '1/(' + expression + ')';
 
   display = '';
-  updateDisplay();
-}
-
-function ln() {
-  currentInput = String(Math.log(applyEE()));
-  display = currentInput;
   updateDisplay();
 }
 
@@ -187,22 +167,6 @@ function toggleSign() {
 }
 
 /* ---------- Editing ---------- */
-function deleteChar() {
-  if (justEvaluated) return;
-  if (eeMode) {
-    eeExponent = eeExponent.slice(0, -1);
-    display = currentInput + 'E' + eeExponent;
-    updateDisplay();
-    return;
-  }
-
-  currentInput = currentInput.slice(0, -1);
-  if (currentInput === '') currentInput = '0';
-
-  display = currentInput;
-  updateDisplay();
-}
-
 function clearAll() {
   justEvaluated = false;
   display = '0';
@@ -321,13 +285,6 @@ function deleteChar() {
   }
 }
 
-function commitCurrentInput() {
-  if (currentInput !== '') {
-    expression += currentInput;
-    currentInput = '';
-  }
-}
-
 function updateDisplay() {
   exprEl.textContent = expression;
   mainEl.textContent = display;
@@ -438,17 +395,6 @@ function handleHypOrPi() {
 
   // primary HYP (not implemented yet)
   // do nothing for now
-}
-
-function getNumericValue() {
-  // Prefer the numeric buffer, fall back to expression
-  if (currentInput !== '') {
-    return Number(currentInput);
-  }
-
-  // For just-evaluated results, display may contain formatting,
-  // so always re-use currentInput which was set to the result
-  return NaN;
 }
 
 function storeValue() {
@@ -614,34 +560,27 @@ function applyFormatMode() {
   if (display === '' || isNaN(display)) return;
 
   const value = Number(display);
-
   if (!isFinite(value)) return;
 
   switch (formatMode) {
     case 'OFF':
       display = String(value);
       break;
-
     case 'SCI':
       display = value.toExponential();
       break;
-
     case 'ENG': {
       if (value === 0) {
         display = '0';
         break;
       }
-
       const exp = Math.floor(Math.log10(Math.abs(value)) / 3) * 3;
       const mantissa = value / Math.pow(10, exp);
-      display = mantissa.toString() + 'E' + exp;
+      display = mantissa + 'E' + exp;
       break;
     }
   }
-
-  updateDisplay();
 }
-
 
 function updateFormatIndicator() {
   const modeEl = document.getElementById('display-mode');
