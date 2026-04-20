@@ -21,6 +21,17 @@ const exprEl = document.getElementById('display-expression');
 const mainEl = document.getElementById('display-main');
 const btnSecond = document.getElementById('btnSecond');
 
+document.querySelector('.keys').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+
+  // If 2nd is active and ANY non-2nd key is pressed, cancel it
+  if (secondMode && btn !== btnSecond) {
+    secondMode = false;
+    btnSecond.classList.remove('second-active');
+  }
+});
+
 /* ---------- Number Entry ---------- */
 function inputNumber(num) {
   if (justEvaluated) {
@@ -362,9 +373,6 @@ function handleLogOrTenPower() {
 
     expression = '10^(' + expression + ')';
 
-    secondMode = false;
-    btnSecond.classList.remove('second-active');
-
     display = '';
     updateDisplay();
     return;
@@ -382,9 +390,6 @@ function handleLnOrExp() {
     if (expression === '') return;
 
     expression = 'e^(' + expression + ')';
-
-    secondMode = false;
-    btnSecond.classList.remove('second-active');
 
     display = '';
     updateDisplay();
@@ -404,9 +409,6 @@ function handleSqrtOrSquare() {
     // 2nd + √ → x²
     expression = '(' + expression + ')^2';
 
-    secondMode = false;
-    btnSecond.classList.remove('second-active');
-
     display = '';
     updateDisplay();
     return;
@@ -421,8 +423,6 @@ function handleSqrtOrSquare() {
 function handleEeOrReciprocal() {
   if (secondMode) {
     enterEE();
-    secondMode = false;
-    btnSecond.classList.remove('second-active');
     return;
   }
   reciprocal();
@@ -431,8 +431,6 @@ function handleEeOrReciprocal() {
 function handleHypOrPi() {
   if (secondMode) {
     inputPi();
-    secondMode = false;
-    btnSecond.classList.remove('second-active');
     return;
   }
 
@@ -467,8 +465,6 @@ function storeValue() {
 
 function recallValue() {
   if (memoryValue === null) {
-    secondMode = false;
-    btnSecond.classList.remove('second-active');
     return;
   }
 
@@ -483,10 +479,6 @@ function recallValue() {
   currentInput = String(memoryValue);
   display = currentInput;
   updateDisplay();
-
-  // RCL consumes 2nd
-  secondMode = false;
-  btnSecond.classList.remove('second-active');
 }
 
 function handleRclOrSto() {
@@ -535,8 +527,6 @@ function commitCurrentInput() {
 function handlePowerOrNthRoot() {
   if (secondMode) {
     handleNthRoot();
-    secondMode = false;
-    btnSecond.classList.remove('second-active');
     return;
   }
 
@@ -558,18 +548,12 @@ function resetCalculator() {
   pendingRootIndex = null;
   justEvaluated = false;
 
-  // Clear 2nd key
-  secondMode = false;
-  btnSecond.classList.remove('second-active');
-
   updateDisplay();
 }
 function handleZeroOrReset() {
   console.log('in1');
   if (secondMode) {
     console.log('in');
-    secondMode = false;
-    btnSecond.classList.remove('second-active');
     resetCalculator();
     return;
   }
