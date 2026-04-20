@@ -1,0 +1,266 @@
+/* ---------- Layout ---------- */
+
+body {
+  font-family: Arial, sans-serif;
+  background: #e5e7eb;
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.calculator {
+  width: 300px;
+  background: linear-gradient(#4a5b6d, #374452);
+  border-radius: 22px;
+  padding: 16px;
+  border: 1px solid black;
+
+  /* Depth + rounded edge illusion */
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.15),
+    /* top highlight */ inset 0 -4px 6px rgba(0, 0, 0, 0.35),
+    /* bottom curve */ inset 2px 0 4px rgba(255, 255, 255, 0.08),
+    /* left edge */ inset -2px 0 4px rgba(0, 0, 0, 0.25),
+    /* right edge */ 0 20px 50px rgba(0, 0, 0, 0.35); /* outer shadow */
+}
+
+.disc {
+  width: 300px;
+  font-size: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+/* ---------- Header ---------- */
+
+.header {
+  text-align: center;
+  padding: 8px 0;
+  border-bottom: 2px solid #0f172a;
+  margin-bottom: 12px;
+  line-height: 24px;
+}
+
+.subheader {
+  color: white;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.model-name {
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 2px;
+  letter-spacing: 1px;
+}
+
+/* ---------- Display ---------- */
+
+.display {
+  background: #c2ddb2;
+  color: #000;
+  font-family: 'Courier New', monospace;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+
+  /* NEW */
+  min-height: 90px;
+
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.display-expression {
+  font-size: 30px;
+  min-height: 34px;
+  line-height: 1.2;
+
+  color: #1f2937;
+  text-align: right;
+  opacity: 0.8;
+
+  white-space: nowrap; /* ✅ no wrapping */
+  overflow: hidden; /* ✅ clip */
+  text-overflow: clip; /* or ellipsis if you prefer */
+}
+
+.display-main {
+  font-size: 40px;
+  min-height: 44px;
+  line-height: 1.2;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* ---------- Key Grid ---------- */
+
+.keys {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+/* ---------- Buttons: Base ---------- */
+
+.keys button {
+  position: relative;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 4px;
+  cursor: pointer;
+  font-weight: bold;
+
+  /* Core 3D look */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 3px 0 rgba(0, 0, 0, 0.35),
+    0 6px 8px rgba(0, 0, 0, 0.35);
+
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.06),
+    rgba(0, 0, 0, 0.08)
+  );
+
+  transition:
+    box-shadow 0.06s ease,
+    transform 0.02s ease,
+    filter 0.08s ease,
+    background-color 0.08s ease;
+}
+
+/* ---------- Button Types ---------- */
+
+.num {
+  background: #ebe5e5;
+  color: #111;
+  font-size: 18px;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 2px 0 rgba(0, 0, 0, 0.3),
+    0 5px 6px rgba(0, 0, 0, 0.25);
+}
+
+.op {
+  background: #6b7280;
+  background: #38506c;
+  color: #fff;
+  font-size: 18px;
+}
+
+.func {
+  background: #313439;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.ctrl {
+  background: #fbbf24;
+  color: #111;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* ---------- Secondary Labels ---------- */
+
+.btn-secondary {
+  display: block;
+  font-size: 9px;
+  line-height: 1;
+  margin-bottom: 2px;
+  color: #fde047;
+}
+
+.num > .btn-secondary {
+  color: #111;
+}
+
+/* ---------- Hover ---------- */
+
+.keys button:hover {
+  filter: brightness(1.12);
+}
+
+.keys button.num:hover {
+  filter: brightness(1.08);
+}
+
+.keys button.op:hover {
+  filter: brightness(1.15);
+}
+
+.keys button.func:hover,
+.keys button.ctrl:hover {
+  filter: brightness(1.18);
+}
+
+/* ---------- Press (All buttons EXCEPT 2nd) ---------- */
+
+.keys button:active {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 1px 0 rgba(0, 0, 0, 0.35),
+    0 3px 4px rgba(0, 0, 0, 0.25);
+  filter: brightness(0.96);
+}
+
+/* Prevent :active from altering 2nd key geometry */
+.keys button.ctrl:active {
+  transform: none;
+}
+
+/* ---------- 2nd Key: Latched State ---------- */
+
+.keys button.second-active {
+  background-color: #d97706; /* darker amber */
+  color: #1f2937;
+
+  /* Latched-down look controlled ONLY by this class */
+  transform: translateY(2px);
+
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.45),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Empty Spacer Buttons ---------- */
+
+.keys button:empty {
+  box-shadow: none;
+  background: transparent;
+  cursor: default;
+}
+
+/* ---------- Utilities ---------- */
+
+.wide {
+  grid-column: span 2;
+}
+
+.enlargeText {
+  font-size: 18px;
+}
+
+span.enlargeText {
+  font-size: 14px;
+}
+
+.keys button.op {
+  transform: translateY(-20px);
+}
