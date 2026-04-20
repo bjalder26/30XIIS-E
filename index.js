@@ -5,6 +5,7 @@ let previousValue = null;
 let secondMode = false;
 let memoryValue = null;
 let pendingRootIndex = null;
+let formatMode = 'OFF'; // 'OFF' | 'SCI' | 'ENG'
 const MAX_DISPLAY_FONT = 40; 
 const MIN_DISPLAY_FONT = 22; 
 const MAX_EXPR_FONT = 30;
@@ -113,6 +114,7 @@ function calculate() {
     currentInput = display;
 
     justEvaluated = true;
+    applyFormatMode();
 
     updateDisplay();
   } catch (e) {
@@ -547,9 +549,12 @@ function resetCalculator() {
   eeExponent = '';
   pendingRootIndex = null;
   justEvaluated = false;
-
+  formatMode = 'OFF';
+  updateFormatIndicator();
+  
   updateDisplay();
 }
+
 function handleZeroOrReset() {
   console.log('in1');
   if (secondMode) {
@@ -587,3 +592,59 @@ function fitExpressionText() {
     el.style.fontSize = size - 1 + 'px';
   }
 }
+
+function handleSciEng() {
+  switch (formatMode) {
+    case 'OFF':
+      formatMode = 'SCI';
+      break;
+    case 'SCI':
+      formatMode = 'ENG';
+      break;
+    case 'ENG':
+      formatMode = 'OFF';
+      break;
+  }
+
+  applyFormatMode();
+  updateFormatIndicator();
+}
+
+function applyFormatMode() {
+  if (display === '' || isNaN(display)) return;
+
+  const value = Number(display);
+
+  if (!isFinite(value)) return;
+
+  switch (formatMode) {
+    case 'OFF':
+      display = String(value);
+      break;
+
+    case 'SCI':
+      display = value.toExponential();
+      break;
+
+    case 'ENG': {
+      if (value === 0) {
+        display = '0';
+        break;
+      }
+
+      const exp = Math.floor(Math.log10(Math.abs(value)) / 3) * 3;
+      const mantissa = value / Math.pow(10, exp);
+      display = mantissa.toString() + 'E' + exp;
+      break;
+    }
+  }
+
+  updateDisplay();
+}
+
+
+function updateFormatIndicator() {
+  const modeEl = document.getElementById('display-mode');
+  modeEl.textContent = formatMode === 'OFF' ? '' : formatMode;
+}
+
