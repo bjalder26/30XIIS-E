@@ -264,3 +264,21 @@ span.enlargeText {
 .keys button.op {
   transform: translateY(-20px);
 }
+
+.display {
+  position: relative; /* needed for absolute positioning */
+}
+
+.display-mode {
+  position: absolute;
+  top: 6px;
+  left: 10px;
+
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+
+  color: rgba(31, 41, 55, 0.7); /* subtle dark */
+  pointer-events: none;        /* never interfere with clicks */
+  user-select: none;
+}
