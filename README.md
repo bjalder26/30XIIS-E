@@ -17,6 +17,7 @@ The following buttons work:
 * reset
 * 0-9
 * ÷ × - + =
+* SCI/ENG will cycle through SCI → ENG → FLO rather than bringing up a menu like you would see with a TI-30XIIS.
 
 The rest are not set up to work yet.
 
