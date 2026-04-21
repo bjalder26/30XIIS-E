@@ -96,7 +96,7 @@ function calculate() {
       .replace(/÷/g, '/')
       .replace(/−/g, '-')
       .replace(/\^/g, '**')
-      .replace(/log10\(/g, 'Math.log10(')
+      .replace(/log\(/g, 'Math.log10(')
       .replace(/ln\(/g, 'Math.log(')
       .replace(/e\*\*\(/g, 'Math.exp(')
       .replace(/sqrt\(/g, 'Math.sqrt(');
@@ -122,14 +122,10 @@ function calculate() {
 
 /* ---------- Functions ---------- */
 function reciprocal() {
-  // First finish EE if active
+  ensureAnsInExpression();
   applyEE();
 
-  if (expression === '') return;
-
-  // Wrap the last term in 1/(...)
   expression = '1/(' + expression + ')';
-
   display = '';
   updateDisplay();
 }
@@ -303,7 +299,7 @@ function maybeInsertImplicitMultiply() {
 }
 
 function applyUnary(fnName) {
-  // If last action was '=', apply to result (TI behavior)
+  // If last action was '=', apply to ANS
   if (justEvaluated) {
     expression = fnName + '(' + currentInput + ')';
     currentInput = '';
@@ -314,7 +310,7 @@ function applyUnary(fnName) {
   }
 
   // Otherwise: start a new function
-  commitCurrentInput(); // commit anything pending before starting
+  commitCurrentInput();
   expression += fnName + '(';
   display = '';
   updateDisplay();
@@ -322,20 +318,15 @@ function applyUnary(fnName) {
 
 function handleLogOrTenPower() {
   if (secondMode) {
-    // 2nd + log → 10^x
-    applyEE();
-
-    if (expression === '') return;
-
-    expression = '10^(' + expression + ')';
-
+    // 10^x (prefix)
+    commitCurrentInput();
+    expression += '10^(';
     display = '';
     updateDisplay();
     return;
   }
 
-  // normal log
-  applyUnary('log10');
+  applyUnary('log'); // NOT log10
 }
 
 function handleLnOrExp() {
@@ -357,31 +348,24 @@ function handleLnOrExp() {
 }
 
 function handleSqrtOrSquare() {
-  applyEE();
-
-  if (expression === '') return;
-
   if (secondMode) {
-    // 2nd + √ → x²
-    expression = '(' + expression + ')^2';
-
+    // x² is postfix
+    commitCurrentInput();
+    expression += '^2';
     display = '';
     updateDisplay();
     return;
   }
 
-  // normal √
-  expression = 'sqrt(' + expression + ')';
+  // √ behaves like: × √( … ) if something already exists
+  if (currentInput !== '' || expression !== '' || justEvaluated) {
+    commitCurrentInput();
+    maybeInsertImplicitMultiply();
+  }
+
+  expression += 'sqrt(';
   display = '';
   updateDisplay();
-}
-
-function handleEeOrReciprocal() {
-  if (secondMode) {
-    enterEE();
-    return;
-  }
-  reciprocal();
 }
 
 function handleHypOrPi() {
@@ -435,23 +419,20 @@ function handleRclOrSto() {
 function handleNthRoot() {
   if (eeMode) applyEE();
 
-  if (justEvaluated) {
-    currentInput = display;
+  if (currentInput === '' && justEvaluated) {
+    currentInput = display; // ANS as index
     expression = '';
     justEvaluated = false;
   }
 
   if (currentInput === '') return;
 
-  // Capture index x
   pendingRootIndex = currentInput;
-
-  // Keep the index visible, but clear input buffer
   currentInput = '';
   display = pendingRootIndex + 'ˣ√';
-
   updateDisplay();
 }
+
 
 function commitCurrentInput() {
   if (currentInput === '') return;
@@ -597,3 +578,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+function ensureAnsInExpression() {
+  if (expression === '' && currentInput === '' && justEvaluated) {
+    expression = currentInput; // ANS
+    justEvaluated = false;
+  }
+}
