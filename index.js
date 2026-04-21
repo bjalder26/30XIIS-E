@@ -20,15 +20,19 @@ const exprEl = document.getElementById('display-expression');
 const mainEl = document.getElementById('display-main');
 const btnSecond = document.getElementById('btnSecond');
 
-document.querySelector('.keys').addEventListener('click', (e) => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
+document.addEventListener('DOMContentLoaded', () => {
+  const keysEl = document.querySelector('.keys');
+  if (!keysEl) return;
 
-  // If 2nd is active and ANY non-2nd key is pressed, cancel it
-  if (secondMode && btn !== btnSecond) {
-    secondMode = false;
-    btnSecond.classList.remove('second-active');
-  }
+  keysEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+
+    if (secondMode && btn !== btnSecond) {
+      secondMode = false;
+      btnSecond.classList.remove('second-active');
+    }
+  });
 });
 
 /* ---------- Number Entry ---------- */
