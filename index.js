@@ -99,7 +99,8 @@ function calculate() {
       .replace(/log\(/g, 'Math.log10(')
       .replace(/ln\(/g, 'Math.log(')
       .replace(/e\*\*\(/g, 'Math.exp(')
-      .replace(/sqrt\(/g, 'Math.sqrt(');
+      .replace(/sqrt\(/g, 'Math.sqrt(')
+      .replace(/π/g, 'Math.PI');
     const result = Function('"use strict"; return (' + safeExpr + ')')();
 
     // top line clears
@@ -177,12 +178,13 @@ btnSecond.onclick = () => {
 };
 
 function inputPi() {
-  // π cancels EE entry if active
-  eeMode = false;
-  eeExponent = '';
+  if (currentInput !== '' || expression !== '' || justEvaluated) {
+    commitCurrentInput();
+    maybeInsertImplicitMultiply();
+  }
 
-  currentInput = String(Math.PI);
-  display = currentInput;
+  expression += 'π';
+  display = 'π';
   updateDisplay();
 }
 
@@ -280,7 +282,10 @@ function deleteChar() {
 
 function updateDisplay() {
   exprEl.textContent = expression;
-  mainEl.textContent = display;
+
+  const formatted = formatDisplay(display);
+  mainEl.textContent = formatted;
+
   fitExpressionText();
   fitDisplayText();
 }
@@ -299,18 +304,12 @@ function maybeInsertImplicitMultiply() {
 }
 
 function applyUnary(fnName) {
-  // If last action was '=', apply to ANS
-  if (justEvaluated) {
-    expression = fnName + '(' + currentInput + ')';
-    currentInput = '';
-    justEvaluated = false;
-    display = '';
-    updateDisplay();
-    return;
+  // If there is something before, insert implicit multiply
+  if (currentInput !== '' || expression !== '' || justEvaluated) {
+    commitCurrentInput();
+    maybeInsertImplicitMultiply();
   }
 
-  // Otherwise: start a new function
-  commitCurrentInput();
   expression += fnName + '(';
   display = '';
   updateDisplay();
@@ -318,32 +317,33 @@ function applyUnary(fnName) {
 
 function handleLogOrTenPower() {
   if (secondMode) {
-    // 10^x (prefix)
-    commitCurrentInput();
+    // 10^x
+    if (currentInput !== '' || expression !== '' || justEvaluated) {
+      commitCurrentInput();
+      maybeInsertImplicitMultiply();
+    }
     expression += '10^(';
     display = '';
     updateDisplay();
     return;
   }
 
-  applyUnary('log'); // NOT log10
+  applyUnary('log');
 }
 
 function handleLnOrExp() {
   if (secondMode) {
-    // 2nd + ln → e^x
-    applyEE();
-
-    if (expression === '') return;
-
-    expression = 'e^(' + expression + ')';
-
+    // e^x
+    if (currentInput !== '' || expression !== '' || justEvaluated) {
+      commitCurrentInput();
+      maybeInsertImplicitMultiply();
+    }
+    expression += 'e^(';
     display = '';
     updateDisplay();
     return;
   }
 
-  // normal ln
   applyUnary('ln');
 }
 
@@ -592,4 +592,42 @@ function ensureAnsInExpression() {
     expression = currentInput; // ANS
     justEvaluated = false;
   }
+}
+
+function formatDisplay(displayStr) {
+  if (!displayStr) return displayStr;
+
+  return displayStr
+    // x^2 → x²
+    .replace(/\^2/g, '²')
+
+    // x^3 → x³
+    .replace(/\^3/g, '³')
+
+    // x^(-1) → x⁻¹
+    .replace(/\^\(-1\)/g, '⁻¹')
+
+    // x^(-2) → x⁻² (optional, future-proof)
+    .replace(/\^\(-2\)/g, '⁻²')
+
+    // general ^(-n) → ⁻ⁿ (basic version)
+    .replace(/\^\(-(\d+)\)/g, (_, n) =>
+      '⁻' + n.split('').map(toSuperscript).join('')
+    );
+}
+
+function toSuperscript(d) {
+  const map = {
+    '0': '⁰',
+    '1': '¹',
+    '2': '²',
+    '3': '³',
+    '4': '⁴',
+    '5': '⁵',
+    '6': '⁶',
+    '7': '⁷',
+    '8': '⁸',
+    '9': '⁹'
+  };
+  return map[d] || d;
 }
