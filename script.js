@@ -378,12 +378,10 @@ function handleEeOrReciprocal() {
 
 function handleHypOrPi() {
   if (secondMode) {
-    inputPi();
+    // HYP (not implemented yet)
     return;
   }
-
-  // primary HYP (not implemented yet)
-  // do nothing for now
+  inputPi();
 }
 
 function storeValue() {
