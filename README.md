@@ -7,7 +7,7 @@ The following buttons work:
 * log / $10^x$
 * ln / $e^x$
 * CLEAR
-* π / HYP
+* π
 * ^ / $n\sqrt{x}$
 * $X^{-1}$ / EE
 * (
