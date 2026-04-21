@@ -368,6 +368,14 @@ function handleSqrtOrSquare() {
   updateDisplay();
 }
 
+function handleEeOrReciprocal() {
+  if (secondMode) {
+    enterEE();
+    return;
+  }
+  reciprocal();
+}
+
 function handleHypOrPi() {
   if (secondMode) {
     // HYP (not implemented yet)
