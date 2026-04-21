@@ -22,6 +22,14 @@ const btnSecond = document.getElementById('btnSecond');
 
 /* ---------- Number Entry ---------- */
 function inputNumber(num) {
+  // If entering radicand of xth root
+  if (pendingRootIndex !== null && currentInput === '') {
+    currentInput = num;
+    display = currentInput; // show radicand, not blank
+    updateDisplay();
+    return;
+  }
+
   if (justEvaluated) {
     expression = '';
     currentInput = '';
@@ -257,7 +265,7 @@ function deleteChar() {
     return;
   }
 
-  // 4️⃣ Cancel pending nth-root
+  // 4️⃣ Cancel pending xth-root
   if (pendingRootIndex !== null) {
     pendingRootIndex = null;
     display = '0';
@@ -295,19 +303,19 @@ function maybeInsertImplicitMultiply() {
 }
 
 function applyUnary(fnName) {
-  // If result is on screen, use it exactly once
+  // If last action was '=', apply to result (TI behavior)
   if (justEvaluated) {
-    expression = currentInput;
+    expression = fnName + '(' + currentInput + ')';
     currentInput = '';
     justEvaluated = false;
-  } else {
-    // Only commit during normal entry
-    commitCurrentInput();
+    display = '';
+    updateDisplay();
+    return;
   }
 
-  if (expression === '') return;
-
-  expression = fnName + '(' + expression + ')';
+  // Otherwise: start a new function
+  commitCurrentInput(); // commit anything pending before starting
+  expression += fnName + '(';
   display = '';
   updateDisplay();
 }
@@ -435,12 +443,12 @@ function handleNthRoot() {
 
   if (currentInput === '') return;
 
-  // Capture index n
+  // Capture index x
   pendingRootIndex = currentInput;
 
   // Keep the index visible, but clear input buffer
   currentInput = '';
-  display = pendingRootIndex + 'ⁿ√';
+  display = pendingRootIndex + 'ˣ√';
 
   updateDisplay();
 }
