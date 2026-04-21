@@ -542,6 +542,7 @@ function handleSciEng() {
   }
 
   applyFormatMode();
+  updateDisplay();
   updateFormatIndicator();
 }
 
