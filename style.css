@@ -271,8 +271,8 @@ span.enlargeText {
 
 .display-mode {
   position: absolute;
-  top: 6px;
-  left: 10px;
+  bottom: 6px;
+  left: 90px;
 
   font-size: 12px;
   font-weight: bold;
