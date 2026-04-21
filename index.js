@@ -20,21 +20,6 @@ const exprEl = document.getElementById('display-expression');
 const mainEl = document.getElementById('display-main');
 const btnSecond = document.getElementById('btnSecond');
 
-document.addEventListener('DOMContentLoaded', () => {
-  const keysEl = document.querySelector('.keys');
-  if (!keysEl) return;
-
-  keysEl.addEventListener('click', (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-
-    if (secondMode && btn !== btnSecond) {
-      secondMode = false;
-      btnSecond.classList.remove('second-active');
-    }
-  });
-});
-
 /* ---------- Number Entry ---------- */
 function inputNumber(num) {
   if (justEvaluated) {
@@ -591,3 +576,17 @@ function updateFormatIndicator() {
   modeEl.textContent = formatMode === 'OFF' ? '' : formatMode;
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  const keysEl = document.querySelector('.keys');
+  if (!keysEl) return;
+
+  keysEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+
+    if (secondMode && btn !== btnSecond) {
+      secondMode = false;
+      btnSecond.classList.remove('second-active');
+    }
+  });
+});
