@@ -12,6 +12,7 @@ let entry = '';
 let eeMantissa = '';
 let eeExponentStr = '';
 let pendingRootIndexToken = null;
+let rootRadicandBuffer = null;
 
 // EE state
 let eeMode = false;
@@ -25,25 +26,16 @@ const btnSecond = document.getElementById('btnSecond');
 
 /* ---------- Number Entry ---------- */
 function inputNumber(num) {
-  // Finalize x√ when radicand starts
+  // Accumulate radicand digits for x√
   if (pendingRootIndexToken) {
-    const index = pendingRootIndexToken.evalPart;
+    rootRadicandBuffer += num;
 
-    // 🔴 REMOVE the previously shown "xˣ√"
-    entry = entry.slice(
-      0,
-      -(
-        pendingRootIndexToken.entryPart.length + 2 // length of "ˣ√"
-      )
-    );
+    // Update expression display only
+    entry =
+      pendingRootIndexToken.entryPart +
+      'ˣ√' +
+      rootRadicandBuffer;
 
-    // ✅ Push finalized root as ONE token
-    pushToken(
-      pendingRootIndexToken.entryPart + 'ˣ√' + num,
-      num + '**(1/' + index + ')'
-    );
-
-    pendingRootIndexToken = null;
     updateDisplay();
     return;
   }
