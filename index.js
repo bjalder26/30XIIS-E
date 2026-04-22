@@ -192,7 +192,7 @@ function setOperator(op) {
 }
 
 function deleteChar() {
-// ✅ If we just evaluated AND no entry state exists, do nothing
+  // Block delete on final result with no pending state
   if (
     justEvaluated &&
     !pendingRootIndexToken &&
@@ -202,37 +202,30 @@ function deleteChar() {
     return;
   }
 
-  // ✅ 1. If we are entering a radicand, delete from buffer
+  justEvaluated = false;
+
+  // 1️⃣ Delete radicand digits
   if (pendingRootIndexToken && rootRadicandBuffer.length > 0) {
     rootRadicandBuffer = rootRadicandBuffer.slice(0, -1);
-
-    entry =
-      pendingRootIndexToken.entryPart +
-      'ˣ√' +
-      rootRadicandBuffer;
-
+    rebuildEntry();
     updateDisplay();
     return;
   }
 
-  // ✅ 2. If radicand buffer is empty, remove the x√ operator
+  // 2️⃣ Delete the ˣ√ operator itself
   if (pendingRootIndexToken) {
-    // Restore the index token
-    pushToken(
-      pendingRootIndexToken.entryPart,
-      pendingRootIndexToken.evalPart
-    );
-
+    tokenStack.push(pendingRootIndexToken);
     pendingRootIndexToken = null;
     rootRadicandBuffer = '';
-
-    updateDisplay();
-  }
-  
-  // ✅ 3. Normal delete: pop last token
-  if (popToken()) {
+    rebuildEntry();
     updateDisplay();
     return;
+  }
+
+  // 3️⃣ Normal token deletion
+  if (popToken()) {
+    rebuildEntry();
+    updateDisplay();
   }
 }
 
@@ -713,6 +706,14 @@ function finalizePendingRoot() {
   // ✅ CLEAR STATE
   pendingRootIndexToken = null;
   rootRadicandBuffer = '';
+}
+
+function rebuildEntry() {
+  entry = tokenStack.map(t => t.entryPart).join('');
+
+  if (pendingRootIndexToken) {
+    entry += pendingRootIndexToken.entryPart + 'ˣ√' + rootRadicandBuffer;
+  }
 }
 
 
