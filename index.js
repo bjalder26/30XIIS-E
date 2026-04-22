@@ -223,7 +223,7 @@ function maybeInsertImplicitMultiply() {
 }
 
 function applyUnary(fnName) {
-  if (entry !== '' || justEvaluated) {
+  if ((entry !== '' || justEvaluated) && !lastTokenIsUnaryMinus()) {
     pushToken('', '*');
   }
 
@@ -239,7 +239,7 @@ function applyUnary(fnName) {
 
 function handleLogOrTenPower() {
   if (secondMode) {
-    if (entry !== '' || justEvaluated) {
+    if ((entry !== '' || justEvaluated) && !lastTokenIsUnaryMinus()) {
       pushToken('', '*');
     }
   
@@ -254,7 +254,7 @@ function handleLogOrTenPower() {
 
 function handleLnOrExp() {
   if (secondMode) {
-    if (entry !== '' || justEvaluated) {
+    if ((entry !== '' || justEvaluated) && !lastTokenIsUnaryMinus()) {
       pushToken('', '*');
     }
   
@@ -280,7 +280,7 @@ function handleSqrtOrSquare() {
   }
 
   // √ (prefix with implicit multiply)
-  if (entry !== '' || justEvaluated) {
+  if ((entry !== '' || justEvaluated) && !lastTokenIsUnaryMinus()) {
     pushToken('', '*'); 
   }
   
@@ -576,24 +576,6 @@ function normalizeScientificDisplay(str) {
 }
 
 function expandPrefixFunctions(expr) {
-  // Handle NEGATIVE LOG
-  expr = expr.replace(
-    /-__LOG__(.*)$/,
-    (_, rest) => `-(Math.log10(${rest}))`
-  );
-
-  // Handle NEGATIVE LN
-  expr = expr.replace(
-    /-__LN__(.*)$/,
-    (_, rest) => `-(Math.log(${rest}))`
-  );
-
-  // Handle NEGATIVE SQRT
-  expr = expr.replace(
-    /-__SQRT__(.*)$/,
-    (_, rest) => `-(Math.sqrt(${rest}))`
-  );
-
   // Handle LOG
   expr = expr.replace(
     /__LOG__(.*)$/g,
@@ -644,3 +626,9 @@ function inputNegative() {
   pushToken('-', '-');
   updateDisplay();
 }
+
+function lastTokenIsUnaryMinus() {
+  if (tokenStack.length === 0) return false;
+  return tokenStack[tokenStack.length - 1].entryPart === '-';
+}
+
