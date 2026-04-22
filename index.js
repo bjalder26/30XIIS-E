@@ -85,6 +85,7 @@ function applyEE() {
   eeMode = false;
   eeMantissa = '';
   eeExponentStr = '';
+  rebuildEntry();
 }
 
 /* ---------- Operators ---------- */
@@ -583,6 +584,7 @@ function toSuperscript(d) {
 function pushToken(entryPart, evalPart) {
   tokenStack.push({ entryPart, evalPart });
   expression += evalPart;
+  rebuildEntry()
 }
 
 function popToken() {
@@ -716,6 +718,7 @@ function finalizePendingRoot() {
   // ✅ CLEAR STATE
   pendingRootIndexToken = null;
   rootRadicandBuffer = '';
+  rebuildEntry();
 }
 
 function rebuildEntry() {
@@ -745,10 +748,16 @@ function extractNumericLiteral() {
     if (/^[0-9.]$/.test(t.entryPart)) {
       mantissaParts.unshift(t.evalPart);
       tokenStack.pop();
+      expression = expression.slice(0, -t.evalPart.length); // ✅ FIX
     } else {
       break;
     }
   }
+
+  return mantissaParts.length > 0
+    ? mantissaParts.join('')
+    : null;
+}
 
   return mantissaParts.length > 0
     ? mantissaParts.join('')
