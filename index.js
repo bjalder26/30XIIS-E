@@ -25,14 +25,30 @@ const btnSecond = document.getElementById('btnSecond');
 
 /* ---------- Number Entry ---------- */
 function inputNumber(num) {
-  // If last token is π or ) or a superscript, insert implicit multiply
-  if (tokenStack.length > 0) {
-    const last = tokenStack[tokenStack.length - 1].entryPart;
-    if (last === 'π' || last === ')' || last === '²' || last === '⁻¹') {
-      pushToken('', '*');
-    }
+  // Finalize x√ when radicand starts
+  if (pendingRootIndexToken) {
+    const index = pendingRootIndexToken.evalPart;
+
+    // 🔴 REMOVE the previously shown "xˣ√"
+    entry = entry.slice(
+      0,
+      -(
+        pendingRootIndexToken.entryPart.length + 2 // length of "ˣ√"
+      )
+    );
+
+    // ✅ Push finalized root as ONE token
+    pushToken(
+      pendingRootIndexToken.entryPart + 'ˣ√' + num,
+      num + '**(1/' + index + ')'
+    );
+
+    pendingRootIndexToken = null;
+    updateDisplay();
+    return;
   }
 
+  // EE handling
   if (eeMode) {
     eeExponentStr += num;
     entry = eeMantissa + 'E' + eeExponentStr;
