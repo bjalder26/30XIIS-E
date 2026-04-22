@@ -145,6 +145,7 @@ function clearAll() {
   eeMantissa = '';
   eeExponentStr = '';
   pendingRootIndexToken = null;
+  rootRadicandBuffer = '';
 
   // Clear state
   justEvaluated = false;
@@ -344,24 +345,24 @@ function handleRclOrSto() {
 }
 
 function handleNthRoot() {
+  // ✅ finalize any previous root
   finalizePendingRoot();
-  // Must have something before x√
+
   if (tokenStack.length === 0) return;
 
-  // Pop the index token (e.g. "2")
   const indexToken = tokenStack.pop();
   pendingRootIndexToken = indexToken;
 
-  // Remove it from entry and expression
+  // ✅ reset radicand buffer for this root
+  rootRadicandBuffer = '';
+
   entry = entry.slice(0, -indexToken.entryPart.length);
   expression = expression.slice(0, -indexToken.evalPart.length);
 
-  // Show x√ in the EXPRESSION display only
   entry += indexToken.entryPart + 'ˣ√';
-
-  // ❗ DO NOT TOUCH `display`
   updateDisplay();
 }
+
 
 function handlePowerOrNthRoot() {
   if (justEvaluated) {
@@ -657,8 +658,7 @@ function countParens(str) {
 function finalizePendingRoot() {
   if (!pendingRootIndexToken) return;
 
-  // Radicand is everything after ˣ√
-  const radicand = entry.split('ˣ√').pop();
+  const radicand = rootRadicandBuffer || '0';
   const index = pendingRootIndexToken.evalPart;
 
   // Remove temporary display
@@ -673,8 +673,9 @@ function finalizePendingRoot() {
     `${radicand}**(1/${index})`
   );
 
-  // ✅ FIX: fully reset root state
+  // ✅ CLEAR STATE
   pendingRootIndexToken = null;
+  rootRadicandBuffer = '';
 }
 
 
