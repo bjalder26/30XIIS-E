@@ -95,7 +95,44 @@ function applyEE() {
 }
 
 /* ---------- Operators ---------- */
+function calculate() {
+  try {
+    finalizePendingRoot();
+    applyEE();
 
+    let evalExpr = expandPrefixFunctions(expression);
+
+    evalExpr = evalExpr
+      .replace(/×/g, '*')
+      .replace(/÷/g, '/')
+      .replace(/−/g, '-')
+      .replace(/\^/g, '**')
+      .replace(/π/g, 'Math.PI');
+
+    const result = Function('"use strict"; return (' + evalExpr + ')')();
+
+    // ✅ Establish ANS
+    display = String(result);
+    justEvaluated = true;
+
+    // ✅ Apply SCI / ENG formatting exactly ONCE here
+    applyFormatMode();
+
+    // Clear expression state
+    entry = '';
+    expression = '';
+    tokenStack = [];
+
+    updateDisplay();
+  } catch (e) {
+    display = 'Error';
+    entry = '';
+    expression = '';
+    tokenStack = [];
+    justEvaluated = false;
+    updateDisplay();
+  }
+}
 
 /* ---------- Functions ---------- */
 function reciprocal() {
