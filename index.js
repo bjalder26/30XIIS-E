@@ -91,6 +91,7 @@ function applyEE() {
 
 function calculate() {
   try {
+    finalizePendingRoot();
     applyEE();
 
     let evalExpr = expandPrefixFunctions(expression);
@@ -173,6 +174,7 @@ function inputPi() {
 }
 
 function addParen(p) {
+  finalizePendingRoot();
   pushToken(p, p);
   display = '';
   updateDisplay();
@@ -651,4 +653,22 @@ function countParens(str) {
   return { open, close };
 }
 
+function finalizePendingRoot() {
+  if (!pendingRootIndexToken) return;
+
+  // The radicand is everything typed AFTER x√
+  const radicand = entry.split('ˣ√').pop();
+  const index = pendingRootIndexToken.evalPart;
+
+  // Remove the temporary display
+  entry = entry.replace(pendingRootIndexToken.entryPart + 'ˣ√' + radicand, '');
+
+  // Push ONE atomic root token
+  pushToken(
+    pendingRootIndexToken.entryPart + 'ˣ√' + radicand,
+    `${radicand}**(1/${index})`
+  );
+
+  pendingRootIndexToken = null;
+}
 
