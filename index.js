@@ -780,15 +780,35 @@ function needsImplicitMultiplyBefore(nextEntryPart) {
 
   const prev = tokenStack[tokenStack.length - 1].entryPart;
 
-  // Things that END a value
-  if (
-    prev === 'π' ||
-    prev === ')' ||
-    prev === '²'
-  ) return true;
+  // ❌ Never break a number literal
+  if (isNumberContinuation(prev, nextEntryPart)) {
+    return false;
+  }
 
-  // Digits or decimals end a value
-  if (/^[0-9.]$/.test(prev)) return true;
+  // ✅ Value ended, new value starting
+  if (isValueEnder(prev)) return true;
 
   return false;
+}
+
+function isNumberContinuation(prev, next) {
+  // digit → digit
+  if (/\d/.test(prev) && /\d/.test(next)) return true;
+
+  // digit → dot
+  if (/\d/.test(prev) && next === '.') return true;
+
+  // dot → digit
+  if (prev === '.' && /\d/.test(next)) return true;
+
+  return false;
+}
+
+function isValueEnder(token) {
+  return (
+    token === ')' ||
+    token === 'π' ||
+    token === '²'
+    // add other postfix operators here if needed
+  );
 }
