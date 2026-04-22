@@ -602,5 +602,33 @@ function expandPrefixFunctions(expr) {
 
   return expr;
 }
-``
 
+function canInsertUnaryMinus() {
+  if (tokenStack.length === 0) return true;
+
+  const last = tokenStack[tokenStack.length - 1].entryPart;
+
+  return (
+    last === '(' ||
+    last === '+' ||
+    last === '-' ||
+    last === '×' ||
+    last === '÷' ||
+    last === '^'
+  );
+}
+
+function inputNegative() {
+  // If last action was '=', apply to ANS
+  if (justEvaluated) {
+    injectANS();
+  }
+
+  if (!canInsertUnaryMinus()) {
+    return; // do nothing
+  }
+
+  // Insert unary minus token
+  pushToken('-', '-');
+  updateDisplay();
+}
