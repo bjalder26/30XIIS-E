@@ -78,13 +78,12 @@ body {
 }
 
 .display-expression {
-  font-size: 30px;
-  min-height: 34px;
+  font-size: 40px;
+  min-height: 44px;
   line-height: 1.2;
 
-  color: #1f2937;
-  text-align: right;
-  opacity: 0.8;
+  color: #000;
+  text-align: left;
 
   white-space: nowrap; /* ✅ no wrapping */
   overflow: hidden; /* ✅ clip */
