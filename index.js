@@ -244,10 +244,15 @@ function deleteChar() {
 }
 
 function updateDisplay() {
-  exprEl.textContent = entry;
+  if (eeMode) {
+    // ✅ During EE entry, show mantissa + E + exponent
+    exprEl.textContent =
+      eeMantissa + 'E' + eeExponentStr;
+  } else {
+    exprEl.textContent = entry;
+  }
 
-  const formatted = formatDisplay(display);
-  mainEl.textContent = formatted;
+  mainEl.textContent = formatDisplay(display);
 
   fitExpressionText();
   fitDisplayText();
