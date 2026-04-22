@@ -580,11 +580,22 @@ function expandPrefix(expr, marker, fnName) {
   if (idx === -1) return expr;
 
   const before = expr.slice(0, idx);
-  const after  = expr.slice(idx + marker.length);
+  let after = expr.slice(idx + marker.length);
 
-  return before + fnName + '(' + after + ')';
+  const { open, close } = countParens(after);
+
+  // We are adding ONE '(' with fnName + '('
+  // We must add ONE ')' only if needed to balance
+  const needsClosingParen = close < open + 1;
+
+  return (
+    before +
+    fnName +
+    '(' +
+    after +
+    (needsClosingParen ? ')' : '')
+  );
 }
-
 
 function expandPrefixFunctions(expr) {
   expr = expandPrefix(expr, '__LOG__',  'Math.log10');
@@ -627,4 +638,15 @@ function lastTokenIsUnaryMinus() {
   if (tokenStack.length === 0) return false;
   return tokenStack[tokenStack.length - 1].entryPart === '-';
 }
+
+function countParens(str) {
+  let open = 0;
+  let close = 0;
+  for (const ch of str) {
+    if (ch === '(') open++;
+    else if (ch === ')') close++;
+  }
+  return { open, close };
+}
+
 
