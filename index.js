@@ -243,7 +243,7 @@ function handleLogOrTenPower() {
       pushToken('', '*');
     }
   
-    pushToken('10^(', '10**(');
+    pushToken('₁₀^(', '10**(');
     display = '';
     updateDisplay();
     return;
