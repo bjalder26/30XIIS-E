@@ -1,4 +1,4 @@
-let display = '0';
+let display = '';
 let secondMode = false;
 let memoryValue = null;
 let pendingRootIndex = null;
@@ -124,7 +124,7 @@ function reciprocal() {
 /* ---------- Editing ---------- */
 function clearAll() {
   justEvaluated = false;
-  display = '0';
+  display = '';
   expression = '';
   eeMode = false;
   eeExponent = '';
@@ -344,7 +344,7 @@ function resetCalculator() {
 
   // Clear calculation state
   expression = '';
-  display = '0';
+  display = '';
 
   // Clear modes / flags
   eeMode = false;
