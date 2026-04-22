@@ -194,6 +194,7 @@ function maybeInsertImplicitMultiply() {
   if (/\d/.test(lastChar) || lastChar === ')') {
     pushToken('', '*');
   }
+  */
 }
 
 function applyUnary(fnName) {
@@ -224,7 +225,6 @@ function handleLogOrTenPower() {
   }
 
   applyUnary('log');
-  */
 }
 
 function handleLnOrExp() {
