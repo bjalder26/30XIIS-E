@@ -582,7 +582,6 @@ function toSuperscript(d) {
 
 function pushToken(entryPart, evalPart) {
   tokenStack.push({ entryPart, evalPart });
-  entry += entryPart;
   expression += evalPart;
 }
 
