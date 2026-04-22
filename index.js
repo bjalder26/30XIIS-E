@@ -123,11 +123,24 @@ function reciprocal() {
 
 /* ---------- Editing ---------- */
 function clearAll() {
-  justEvaluated = false;
-  display = '';
+  // Clear entry / tokens
+  entry = '';
+  tokenStack = [];
   expression = '';
+
+  // Clear displays
+  display = '0';
+
+  // Clear modes / buffers
   eeMode = false;
-  eeExponent = '';
+  eeMantissa = '';
+  eeExponentStr = '';
+  pendingRootIndexToken = null;
+
+  // Clear state
+  justEvaluated = false;
+  secondMode = false;
+
   updateDisplay();
 }
 
