@@ -120,7 +120,7 @@ function calculate() {
     ansValue = Number(result);
 
     // ✅ Display formatted result
-    display = String(ansValue);
+    // display = String(ansValue);
     justEvaluated = true;
     applyFormatMode();
 
