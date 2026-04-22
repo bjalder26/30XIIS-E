@@ -61,25 +61,14 @@ function enterEE() {
     injectANS();
   }
 
-  const lastToken = tokenStack[tokenStack.length - 1];
-  if (!lastToken) return;
+  const mantissa = extractNumericLiteral();
+  if (mantissa === null) return; // EE not valid here
 
-  // Only allow EE on a pure number
-  if (!/^-?\d+(\.\d+)?$/.test(lastToken.evalPart)) {
-    return;
-  }
-
-  // ✅ Remove number token ONLY
-  tokenStack.pop();
-
-  eeMantissa = lastToken.evalPart;
+  eeMantissa = mantissa;
   eeExponentStr = '';
   eeMode = true;
 
-  // ✅ Rebuild entry ONLY from tokens (no slicing)
-  rebuildEntry();
-
-  // ✅ EE display is synthetic
+  // Entry display will now come from EE mode
   updateDisplay();
 }
 
@@ -658,19 +647,24 @@ function expandPrefixFunctions(expr) {
 }
 
 function canInsertUnaryMinus() {
+  // Start of expression
   if (tokenStack.length === 0) return true;
 
   const last = tokenStack[tokenStack.length - 1].entryPart;
 
-  return (
-    last === '(' ||
-    last === '+' ||
-    last === '-' ||
-    last === '×' ||
-    last === '÷' ||
-    last === '^'
-  );
+  // After operators
+  if (['+', '-', '×', '÷', '^'].includes(last)) return true;
+
+  // After open parenthesis
+  if (last === '(') return true;
+
+  // ✅ After prefix function openers
+  if (isPrefixOpener(last)) return true;
+
+  // Otherwise, unary minus is not valid here
+  return false;
 }
+
 
 function inputNegative() {
   // If last action was '=', apply to ANS
@@ -731,6 +725,35 @@ function rebuildEntry() {
   if (pendingRootIndexToken) {
     entry += pendingRootIndexToken.entryPart + 'ˣ√' + rootRadicandBuffer;
   }
+}
+
+function isPrefixOpener(token) {
+  return (
+    token === 'log(' ||
+    token === 'ln(' ||
+    token === '√(' ||
+    token === '₁₀^(' ||
+    token === 'e^('
+  );
+}
+
+function extractNumericLiteral() {
+  let mantissaParts = [];
+
+  while (tokenStack.length > 0) {
+    const t = tokenStack[tokenStack.length - 1];
+
+    if (/^[0-9.]$/.test(t.entryPart)) {
+      mantissaParts.unshift(t.evalPart);
+      tokenStack.pop();
+    } else {
+      break;
+    }
+  }
+
+  return mantissaParts.length > 0
+    ? mantissaParts.join('')
+    : null;
 }
 
 
