@@ -758,10 +758,3 @@ function extractNumericLiteral() {
     ? mantissaParts.join('')
     : null;
 }
-
-  return mantissaParts.length > 0
-    ? mantissaParts.join('')
-    : null;
-}
-
-
