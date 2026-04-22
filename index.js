@@ -120,12 +120,11 @@ function calculate() {
     ansValue = Number(result);
 
     // ✅ Display formatted result
-    // display = String(ansValue);
+    display = String(ansValue);
     justEvaluated = true;
     applyFormatMode();
-
-    // ✅ Expression display should now show result
-    entry = display;
+    
+    // entry = display;
 
     // ✅ Clear internal expression state only
     expression = '';
