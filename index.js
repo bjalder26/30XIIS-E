@@ -196,7 +196,7 @@ function deleteChar() {
   if (
     justEvaluated &&
     !pendingRootIndexToken &&
-    !știrootRadicandBuffer === '' &&
+    rootRadicandBuffer === '' &&
     !eeMode
   ) {
     return;
