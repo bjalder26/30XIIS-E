@@ -96,6 +96,11 @@ function applyEE() {
 
 /* ---------- Operators ---------- */
 function calculate() {
+  // ✅ Case: no pending expression
+  if (expression === '' && tokenStack.length === 0) {
+    return; // do nothing
+  }
+
   try {
     finalizePendingRoot();
     applyEE();
@@ -111,25 +116,31 @@ function calculate() {
 
     const result = Function('"use strict"; return (' + evalExpr + ')')();
 
-    // ✅ Establish ANS
-    display = String(result);
-    justEvaluated = true;
+    // ✅ Store ANS numerically
+    ansValue = Number(result);
 
-    // ✅ Apply SCI / ENG formatting exactly ONCE here
+    // ✅ Display formatted result
+    display = String(ansValue);
+    justEvaluated = true;
     applyFormatMode();
 
-    // Clear expression state
-    entry = '';
+    // ✅ Expression display should now show result
+    entry = display;
+
+    // ✅ Clear internal expression state only
     expression = '';
     tokenStack = [];
 
     updateDisplay();
   } catch (e) {
+    // Only show error if there WAS something to evaluate
     display = 'Error';
+    justEvaluated = false;
+
     entry = '';
     expression = '';
     tokenStack = [];
-    justEvaluated = false;
+
     updateDisplay();
   }
 }
