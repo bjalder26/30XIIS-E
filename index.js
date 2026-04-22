@@ -8,6 +8,9 @@ const MAX_DISPLAY_FONT = 40;
 const MIN_DISPLAY_FONT = 22; 
 const MAX_EXPR_FONT = 30;
 const MIN_EXPR_FONT = 16;
+let tokenStack = [];
+let entry = '';
+
 
 // EE state
 let eeMode = false;
@@ -47,11 +50,8 @@ function inputNumber(num) {
     return;
   }
 
-  if (currentInput === '' || currentInput === '0') {
-    currentInput = num;
-  } else {
-    currentInput += num;
-  }
+  pushToken(num, num);
+  display += num;
 
   display = currentInput;
   updateDisplay();
@@ -123,10 +123,8 @@ function calculate() {
 
 /* ---------- Functions ---------- */
 function reciprocal() {
-  ensureAnsInExpression();
-  applyEE();
-
-  expression = '1/(' + expression + ')';
+  commitCurrentInput();
+  pushToken('⁻¹', '**(-1)');
   display = '';
   updateDisplay();
 }
@@ -178,12 +176,12 @@ btnSecond.onclick = () => {
 };
 
 function inputPi() {
-  if (currentInput !== '' || expression !== '' || justEvaluated) {
+  if (entry !== '' || justEvaluated) {
     commitCurrentInput();
-    maybeInsertImplicitMultiply();
+    pushToken('', '*'); 
   }
 
-  expression += 'π';
+  pushToken('π', 'Math.PI');
   display = 'π';
   updateDisplay();
 }
@@ -223,6 +221,16 @@ function setOperator(op) {
 function deleteChar() {
   // 1️⃣ After equals: DEL does nothing
   if (justEvaluated) return;
+
+  
+  // First try token deletion
+    if (popToken()) {
+      updateDisplay();
+      return;
+    }
+  
+    // Fallback to old character-based deletion (numbers, operators)
+
 
   // 2️⃣ Deleting EE exponent
   if (eeMode) {
@@ -281,7 +289,7 @@ function deleteChar() {
 }
 
 function updateDisplay() {
-  exprEl.textContent = expression;
+  exprEl.textContent = entry;
 
   const formatted = formatDisplay(display);
   mainEl.textContent = formatted;
@@ -299,30 +307,34 @@ function maybeInsertImplicitMultiply() {
   // number followed by '('  → multiply
   // ')' followed by '('     → multiply
   if (/\d/.test(lastChar) || lastChar === ')') {
-    expression += '×';
+    pushToken('', '*');
   }
 }
 
 function applyUnary(fnName) {
-  // If there is something before, insert implicit multiply
-  if (currentInput !== '' || expression !== '' || justEvaluated) {
+  if (entry !== '' || justEvaluated) {
     commitCurrentInput();
-    maybeInsertImplicitMultiply();
+    pushToken('', '*');
   }
 
-  expression += fnName + '(';
+  if (fnName === 'log') {
+    pushToken('log(', 'Math.log10(');
+  } else if (fnName === 'ln') {
+    pushToken('ln(', 'Math.log(');
+  }
+
   display = '';
   updateDisplay();
 }
 
 function handleLogOrTenPower() {
   if (secondMode) {
-    // 10^x
-    if (currentInput !== '' || expression !== '' || justEvaluated) {
+    if (entry !== '' || justEvaluated) {
       commitCurrentInput();
-      maybeInsertImplicitMultiply();
+      pushToken('', '*');
     }
-    expression += '10^(';
+  
+    pushToken('10^(', '10**(');
     display = '';
     updateDisplay();
     return;
@@ -333,12 +345,12 @@ function handleLogOrTenPower() {
 
 function handleLnOrExp() {
   if (secondMode) {
-    // e^x
-    if (currentInput !== '' || expression !== '' || justEvaluated) {
+    if (entry !== '' || justEvaluated) {
       commitCurrentInput();
-      maybeInsertImplicitMultiply();
+      pushToken('', '*');
     }
-    expression += 'e^(';
+  
+    pushToken('e^(', 'Math.exp(');
     display = '';
     updateDisplay();
     return;
@@ -349,21 +361,21 @@ function handleLnOrExp() {
 
 function handleSqrtOrSquare() {
   if (secondMode) {
-    // x² is postfix
+    // x² (postfix)
     commitCurrentInput();
-    expression += '^2';
+    pushToken('²', '**2');
     display = '';
     updateDisplay();
     return;
   }
 
-  // √ behaves like: × √( … ) if something already exists
-  if (currentInput !== '' || expression !== '' || justEvaluated) {
+  // √ (prefix with implicit multiply)
+  if (entry !== '' || justEvaluated) {
     commitCurrentInput();
-    maybeInsertImplicitMultiply();
+    pushToken('', '*'); 
   }
-
-  expression += 'sqrt(';
+  
+  pushToken('√(', 'Math.sqrt(');
   display = '';
   updateDisplay();
 }
@@ -441,7 +453,10 @@ function handleNthRoot() {
   updateDisplay();
 }
 
-
+function commitCurrentInput() {
+  currentInput = '';
+}
+/*
 function commitCurrentInput() {
   if (currentInput === '') return;
 
@@ -455,7 +470,7 @@ function commitCurrentInput() {
 
   currentInput = '';
 }
-
+*/
 function handlePowerOrNthRoot() {
   if (secondMode) {
     handleNthRoot();
@@ -587,13 +602,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-function ensureAnsInExpression() {
-  if (expression === '' && currentInput === '' && justEvaluated) {
-    expression = currentInput; // ANS
-    justEvaluated = false;
-  }
-}
-
 function formatDisplay(displayStr) {
   if (!displayStr) return displayStr;
 
@@ -631,3 +639,19 @@ function toSuperscript(d) {
   };
   return map[d] || d;
 }
+
+function pushToken(entryPart, evalPart) {
+  tokenStack.push({ entryPart, evalPart });
+  entry += entryPart;
+  expression += evalPart;
+}
+
+function popToken() {
+  const token = tokenStack.pop();
+  if (!token) return false;
+
+  entry = entry.slice(0, -token.entryPart.length);
+  expression = expression.slice(0, -token.evalPart.length);
+  return true;
+}
+
