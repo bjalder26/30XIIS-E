@@ -243,7 +243,7 @@ function handleLogOrTenPower() {
       pushToken('', '*');
     }
   
-    pushToken('₁₀^(', '10**(');
+    pushToken('₁₀^(', '__TENPOW__');
     display = '';
     updateDisplay();
     return;
@@ -258,7 +258,7 @@ function handleLnOrExp() {
       pushToken('', '*');
     }
   
-    pushToken('e^(', 'Math.exp(');
+    pushToken('e^(',  '__EPOW__')
     display = '';
     updateDisplay();
     return;
@@ -598,9 +598,11 @@ function expandPrefix(expr, marker, fnName) {
 }
 
 function expandPrefixFunctions(expr) {
-  expr = expandPrefix(expr, '__LOG__',  'Math.log10');
-  expr = expandPrefix(expr, '__LN__',   'Math.log');
-  expr = expandPrefix(expr, '__SQRT__', 'Math.sqrt');
+  expr = expandPrefix(expr, '__LOG__',    'Math.log10');
+  expr = expandPrefix(expr, '__LN__',     'Math.log');
+  expr = expandPrefix(expr, '__SQRT__',   'Math.sqrt');
+  expr = expandPrefix(expr, '__TENPOW__', '10**');
+  expr = expandPrefix(expr, '__EPOW__',   'Math.exp');
   return expr;
 }
 
