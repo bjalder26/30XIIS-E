@@ -96,33 +96,6 @@ function applyEE() {
 
 /* ---------- Operators ---------- */
 
-function applyFormatMode() {
-  if (!justEvaluated) return;
-  if (display === '' || isNaN(display)) return;
-
-  const value = Number(display);
-  if (!isFinite(value)) return;
-
-  switch (formatMode) {
-    case 'OFF':
-      display = String(value);
-      break;
-    case 'SCI':
-      display = value.toExponential();
-      break;
-    case 'ENG': {
-      if (value === 0) {
-        display = '0';
-        break;
-      }
-      const exp = Math.floor(Math.log10(Math.abs(value)) / 3) * 3;
-      const mantissa = value / Math.pow(10, exp);
-      display = mantissa + 'E' + exp;
-      display = normalizeScientificDisplay(display);
-      break;
-    }
-  }
-}
 
 /* ---------- Functions ---------- */
 function reciprocal() {
