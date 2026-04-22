@@ -342,29 +342,38 @@ function handleHypOrPi() {
 }
 
 function storeValue() {
-  // Finish any active EE entry
-  if (eeMode) {
-    applyEE();
-  }
+  // If there is no result yet, do nothing
+  if (display === '' || display === 'Error') return;
+
+  memoryValue = Number(display);
 }
 
 function recallValue() {
-  if (memoryValue === null) {
-    return;
-  }
+  if (memoryValue === null) return;
 
-  // If last action was '=', start fresh
+  // If last action was '=', start a new expression
   if (justEvaluated) {
+    entry = '';
     expression = '';
-    currentInput = '';
+    tokenStack = [];
     justEvaluated = false;
   }
 
-  // Insert recalled value like typing a number
-  currentInput = String(memoryValue);
-  display = currentInput;
+  // Implicit multiply if needed (e.g., 2 RCL → 2×value)
+  if (tokenStack.length > 0) {
+    const last = tokenStack[tokenStack.length - 1].entryPart;
+    if (!['+', '-', '×', '÷', '^', '('].includes(last)) {
+      pushToken('', '*');
+    }
+  }
+
+  // Insert recalled value as a token
+  const valueStr = String(memoryValue);
+  pushToken(valueStr, valueStr);
+
   updateDisplay();
 }
+
 
 function handleRclOrSto() {
   if (secondMode) {
