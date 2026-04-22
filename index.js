@@ -155,7 +155,7 @@ function addParen(p) {
 
 function setOperator(op) {
   if (justEvaluated) {
-    justEvaluated = false;
+    injectANS();  
   }
 
   pushToken(op, op);
@@ -243,7 +243,10 @@ function handleLnOrExp() {
 }
 
 function handleSqrtOrSquare() {
-  if (secondMode) {
+  if (secondMode) {  
+  if (justEvaluated) {
+    injectANS();
+  }
     // x² (postfix)
     pushToken('²', '**2');
     display = '';
@@ -265,6 +268,9 @@ function handleEeOrReciprocal() {
   if (secondMode) {
     enterEE();
     return;
+  }
+  if (justEvaluated) {
+    injectANS();
   }
   reciprocal();
 }
@@ -330,6 +336,9 @@ function handleNthRoot() {
 }
 
 function handlePowerOrNthRoot() {
+  if (justEvaluated) {
+    injectANS();
+  }
   if (secondMode) {
     handleNthRoot();
     return;
@@ -511,4 +520,10 @@ function popToken() {
   expression = expression.slice(0, -token.evalPart.length);
   return true;
 }
+
+function injectANS() {
+  pushToken(display, display);
+  justEvaluated = false;
+}
+
 
