@@ -69,21 +69,17 @@ function enterEE() {
     return;
   }
 
-  // ✅ Remove the number token
+  // ✅ Remove number token ONLY
   tokenStack.pop();
-
-  // ✅ REMOVE IT FROM expression TOO
-  expression = expression.slice(
-    0,
-    -lastToken.evalPart.length
-  );
 
   eeMantissa = lastToken.evalPart;
   eeExponentStr = '';
   eeMode = true;
 
+  // ✅ Rebuild entry ONLY from tokens (no slicing)
   rebuildEntry();
-  entry += eeMantissa + 'E';
+
+  // ✅ EE display is synthetic
   updateDisplay();
 }
 
