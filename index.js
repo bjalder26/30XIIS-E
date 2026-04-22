@@ -12,7 +12,7 @@ let entry = '';
 let eeMantissa = '';
 let eeExponentStr = '';
 let pendingRootIndexToken = null;
-let rootRadicandBuffer = null;
+let rootRadicandBuffer = '';
 
 // EE state
 let eeMode = false;
