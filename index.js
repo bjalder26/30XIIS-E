@@ -57,15 +57,33 @@ function inputNumber(num) {
 /* ---------- EE Handling ---------- */
 
 function enterEE() {
-  if (justEvaluated) clearAll();
+  if (justEvaluated) {
+    injectANS();
+  }
 
-  // Use the already-typed number as mantissa
-  eeMantissa = entry;        // ✅ NOT display
+  const lastToken = tokenStack[tokenStack.length - 1];
+  if (!lastToken) return;
+
+  // Only allow EE on a pure number
+  if (!/^-?\d+(\.\d+)?$/.test(lastToken.evalPart)) {
+    return;
+  }
+
+  // ✅ Remove the number token
+  tokenStack.pop();
+
+  // ✅ REMOVE IT FROM expression TOO
+  expression = expression.slice(
+    0,
+    -lastToken.evalPart.length
+  );
+
+  eeMantissa = lastToken.evalPart;
   eeExponentStr = '';
   eeMode = true;
 
-  // Show EE in the EXPRESSION display only
-  entry = eeMantissa + 'E';
+  rebuildEntry();
+  entry += eeMantissa + 'E';
   updateDisplay();
 }
 
@@ -75,17 +93,14 @@ function applyEE() {
   const exp = eeExponentStr === '' ? '0' : eeExponentStr;
 
   pushToken(
-    eeMantissa + 'E' + exp,   // entry token
-    eeMantissa + 'e' + exp    // eval token
+    eeMantissa + 'E' + exp,
+    `${eeMantissa}e${exp}`
   );
 
+  eeMode = false;
   eeMantissa = '';
   eeExponentStr = '';
-  eeMode = false;
-
-  // Do NOT write to display here
 }
-
 
 /* ---------- Operators ---------- */
 
