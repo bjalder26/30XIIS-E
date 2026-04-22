@@ -26,11 +26,10 @@ const btnSecond = document.getElementById('btnSecond');
 
 /* ---------- Number Entry ---------- */
 function inputNumber(num) {
-  // Accumulate radicand digits for x√
+  // 1️⃣ Accumulate radicand digits for x√ (synthetic mode)
   if (pendingRootIndexToken) {
     rootRadicandBuffer += num;
 
-    // Update expression display only
     entry =
       pendingRootIndexToken.entryPart +
       'ˣ√' +
@@ -40,7 +39,7 @@ function inputNumber(num) {
     return;
   }
 
-  // EE handling
+  // 2️⃣ EE exponent entry (synthetic mode)
   if (eeMode) {
     eeExponentStr += num;
     entry = eeMantissa + 'E' + eeExponentStr;
@@ -48,7 +47,14 @@ function inputNumber(num) {
     return;
   }
 
+  // 3️⃣ Normal number entry begins here
   if (justEvaluated) clearAll();
+
+  // ✅ IMPLICIT MULTIPLY GOES HERE
+  // This fixes: π2, (2)3, (2)(3)
+  if (needsImplicitMultiplyBefore(num)) {
+    pushToken('', '*');
+  }
 
   pushToken(num, num);
   updateDisplay();
@@ -163,19 +169,23 @@ btnSecond.onclick = () => {
 function inputPi() {
   if (justEvaluated) clearAll();
 
-  // Implicit multiply BEFORE π (2π)
-  if (entry !== '') {
+  // ✅ Symmetric implicit multiplication
+  if (needsImplicitMultiplyBefore('π')) {
     pushToken('', '*');
   }
 
   pushToken('π', 'Math.PI');
-
-  // ❗ DO NOT TOUCH `display`
   updateDisplay();
 }
 
 function addParen(p) {
   finalizePendingRoot();
+
+  // ✅ Only for opening parenthesis
+  if (p === '(' && needsImplicitMultiplyBefore('(')) {
+    pushToken('', '*');
+  }
+
   pushToken(p, p);
   display = '';
   updateDisplay();
@@ -757,4 +767,22 @@ function extractNumericLiteral() {
   return mantissaParts.length > 0
     ? mantissaParts.join('')
     : null;
+}
+
+function needsImplicitMultiplyBefore(nextEntryPart) {
+  if (tokenStack.length === 0) return false;
+
+  const prev = tokenStack[tokenStack.length - 1].entryPart;
+
+  // Things that END a value
+  if (
+    prev === 'π' ||
+    prev === ')' ||
+    prev === '²'
+  ) return true;
+
+  // Digits or decimals end a value
+  if (/^[0-9.]$/.test(prev)) return true;
+
+  return false;
 }
