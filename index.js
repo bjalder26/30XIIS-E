@@ -96,37 +96,31 @@ function applyEE() {
 
 /* ---------- Operators ---------- */
 
-function calculate() {
-  try {
-    finalizePendingRoot();
-    applyEE();
+function applyFormatMode() {
+  if (!justEvaluated) return;
+  if (display === '' || isNaN(display)) return;
 
-    let evalExpr = expandPrefixFunctions(expression);
+  const value = Number(display);
+  if (!isFinite(value)) return;
 
-    evalExpr = evalExpr
-      .replace(/×/g, '*')
-      .replace(/÷/g, '/')
-      .replace(/−/g, '-')
-      .replace(/\^/g, '**')
-      .replace(/π/g, 'Math.PI');
-
-    const result = Function('"use strict"; return (' + evalExpr + ')')();
-
-    display = String(result);
-
-    entry = '';
-    expression = '';
-    tokenStack = [];
-    justEvaluated = true;
-
-    applyFormatMode();
-    updateDisplay();
-  } catch (e) {
-    display = 'Error';
-    entry = '';
-    expression = '';
-    tokenStack = [];
-    updateDisplay();
+  switch (formatMode) {
+    case 'OFF':
+      display = String(value);
+      break;
+    case 'SCI':
+      display = value.toExponential();
+      break;
+    case 'ENG': {
+      if (value === 0) {
+        display = '0';
+        break;
+      }
+      const exp = Math.floor(Math.log10(Math.abs(value)) / 3) * 3;
+      const mantissa = value / Math.pow(10, exp);
+      display = mantissa + 'E' + exp;
+      display = normalizeScientificDisplay(display);
+      break;
+    }
   }
 }
 
@@ -507,6 +501,8 @@ function handleSciEng() {
 }
 
 function applyFormatMode() {
+  // ✅ Only format an actual ANS
+  if (!justEvaluated) return;
   if (display === '' || isNaN(display)) return;
 
   const value = Number(display);
