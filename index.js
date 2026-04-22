@@ -192,10 +192,47 @@ function setOperator(op) {
 }
 
 function deleteChar() {
-  if (justEvaluated) return;
+// ✅ If we just evaluated AND no entry state exists, do nothing
+  if (
+    justEvaluated &&
+    !pendingRootIndexToken &&
+    !știrootRadicandBuffer === '' &&
+    !eeMode
+  ) {
+    return;
+  }
 
+  // ✅ 1. If we are entering a radicand, delete from buffer
+  if (pendingRootIndexToken && rootRadicandBuffer.length > 0) {
+    rootRadicandBuffer = rootRadicandBuffer.slice(0, -1);
+
+    entry =
+      pendingRootIndexToken.entryPart +
+      'ˣ√' +
+      rootRadicandBuffer;
+
+    updateDisplay();
+    return;
+  }
+
+  // ✅ 2. If radicand buffer is empty, remove the x√ operator
+  if (pendingRootIndexToken) {
+    // Restore the index token
+    pushToken(
+      pendingRootIndexToken.entryPart,
+      pendingRootIndexToken.evalPart
+    );
+
+    pendingRootIndexToken = null;
+    rootRadicandBuffer = '';
+
+    updateDisplay();
+  }
+  
+  // ✅ 3. Normal delete: pop last token
   if (popToken()) {
     updateDisplay();
+    return;
   }
 }
 
