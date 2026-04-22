@@ -576,29 +576,41 @@ function normalizeScientificDisplay(str) {
 }
 
 function expandPrefixFunctions(expr) {
-  // Handle ln
-  while (expr.includes('__LN__')) {
-    expr = expr.replace(
-      /__LN__(.*)$/,
-      (_, rest) => `Math.log(${rest})`
-    );
-  }
+  // Handle NEGATIVE LOG
+  expr = expr.replace(
+    /-__LOG__(.*)$/,
+    (_, rest) => `-(Math.log10(${rest}))`
+  );
 
-  // Handle log
-  while (expr.includes('__LOG__')) {
-    expr = expr.replace(
-      /__LOG__(.*)$/i,
-      (_, rest) => `Math.log10(${rest})`
-    );
-  }
+  // Handle NEGATIVE LN
+  expr = expr.replace(
+    /-__LN__(.*)$/,
+    (_, rest) => `-(Math.log(${rest}))`
+  );
 
-  // Handle sqrt
-  while (expr.includes('__SQRT__')) {
-    expr = expr.replace(
-      /__SQRT__(.*)$/i,
-      (_, rest) => `Math.sqrt(${rest})`
-    );
-  }
+  // Handle NEGATIVE SQRT
+  expr = expr.replace(
+    /-__SQRT__(.*)$/,
+    (_, rest) => `-(Math.sqrt(${rest}))`
+  );
+
+  // Handle LOG
+  expr = expr.replace(
+    /__LOG__(.*)$/g,
+    (_, rest) => `Math.log10(${rest})`
+  );
+
+  // Handle LN
+  expr = expr.replace(
+    /__LN__(.*)$/g,
+    (_, rest) => `Math.log(${rest})`
+  );
+
+  // Handle SQRT
+  expr = expr.replace(
+    /__SQRT__(.*)$/g,
+    (_, rest) => `Math.sqrt(${rest})`
+  );
 
   return expr;
 }
