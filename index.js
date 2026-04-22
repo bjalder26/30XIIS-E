@@ -575,25 +575,21 @@ function normalizeScientificDisplay(str) {
   return mantissa + exponent;
 }
 
+function expandPrefix(expr, marker, fnName) {
+  const idx = expr.indexOf(marker);
+  if (idx === -1) return expr;
+
+  const before = expr.slice(0, idx);
+  const after = expr.slice(idx + marker.length);
+
+  // Trim leading parentheses only if needed
+  return before + fnName + '(' + after + ')';
+}
+
 function expandPrefixFunctions(expr) {
-  // Handle LOG
-  expr = expr.replace(
-    /__LOG__(.*)$/g,
-    (_, rest) => `Math.log10(${rest})`
-  );
-
-  // Handle LN
-  expr = expr.replace(
-    /__LN__(.*)$/g,
-    (_, rest) => `Math.log(${rest})`
-  );
-
-  // Handle SQRT
-  expr = expr.replace(
-    /__SQRT__(.*)$/g,
-    (_, rest) => `Math.sqrt(${rest})`
-  );
-
+  expr = expandPrefix(expr, '__LOG__', 'Math.log10');
+  expr = expandPrefix(expr, '__LN__', 'Math.log');
+  expr = expandPrefix(expr, '__SQRT__', 'Math.sqrt');
   return expr;
 }
 
