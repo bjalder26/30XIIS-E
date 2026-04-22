@@ -101,27 +101,22 @@ function calculate() {
   try {
     applyEE();
 
-    let safeExpr = expression
+    let evalExpr = expandPrefixFunctions(expression);
+
+    evalExpr = evalExpr
       .replace(/×/g, '*')
       .replace(/÷/g, '/')
       .replace(/−/g, '-')
       .replace(/\^/g, '**')
-      .replace(/log\(/g, 'Math.log10(')
-      .replace(/ln\(/g, 'Math.log(')
-      .replace(/e\*\*\(/g, 'Math.exp(')
-      .replace(/sqrt\(/g, 'Math.sqrt(')
       .replace(/π/g, 'Math.PI');
 
-    const result = Function('"use strict"; return (' + safeExpr + ')')();
+    const result = Function('"use strict"; return (' + evalExpr + ')')();
 
-    // ✅ Show result in MAIN display only
     display = String(result);
 
-    // ✅ Clear expression (top display)
     entry = '';
     expression = '';
     tokenStack = [];
-
     justEvaluated = true;
 
     applyFormatMode();
@@ -241,9 +236,9 @@ function applyUnary(fnName) {
   }
 
   if (fnName === 'log') {
-    pushToken('log(', 'Math.log10(');
+    pushToken('log(', '__LOG__');
   } else if (fnName === 'ln') {
-    pushToken('ln(', 'Math.log(');
+    pushToken('ln(', '__LN__');
   }
 
   display = '';
@@ -297,7 +292,7 @@ function handleSqrtOrSquare() {
     pushToken('', '*'); 
   }
   
-  pushToken('√(', 'Math.sqrt(');
+  pushToken('√(', '__SQRT__');
   display = '';
   updateDisplay();
 }
@@ -587,4 +582,33 @@ function normalizeScientificDisplay(str) {
 
   return mantissa + exponent;
 }
+
+function expandPrefixFunctions(expr) {
+  // Handle ln
+  while (expr.includes('__LN__')) {
+    expr = expr.replace(
+      /__LN__(.*)$/,
+      (_, rest) => `Math.log(${rest})`
+    );
+  }
+
+  // Handle log
+  while (expr.includes('__LOG__')) {
+    expr = expr.replace(
+      /__LOG__(.*)$/i,
+      (_, rest) => `Math.log10(${rest})`
+    );
+  }
+
+  // Handle sqrt
+  while (expr.includes('__SQRT__')) {
+    expr = expr.replace(
+      /__SQRT__(.*)$/i,
+      (_, rest) => `Math.sqrt(${rest})`
+    );
+  }
+
+  return expr;
+}
+``
 
