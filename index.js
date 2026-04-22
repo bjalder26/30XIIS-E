@@ -149,7 +149,6 @@ function clearAll() {
 
   // Clear state
   justEvaluated = false;
-  secondMode = false;
 
   updateDisplay();
 }
@@ -416,22 +415,15 @@ function handlePowerOrNthRoot() {
 }
 
 function resetCalculator() {
-  // Clear memory (STO / RCL)
+  // ✅ reuse correct logic
+  clearAll();
+
+  // ✅ then reset the extras
   memoryValue = null;
-
-  // Clear calculation state
-  expression = '';
-  display = '';
-
-  // Clear modes / flags
-  eeMode = false;
-  eeExponent = '';
-  pendingRootIndex = null;
-  justEvaluated = false;
   formatMode = 'OFF';
+  secondMode = false;
+
   updateFormatIndicator();
-  
-  updateDisplay();
 }
 
 function handleZeroOrReset() {
