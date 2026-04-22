@@ -580,18 +580,15 @@ function expandPrefix(expr, marker, fnName) {
   if (idx === -1) return expr;
 
   const before = expr.slice(0, idx);
-  let after = expr.slice(idx + marker.length);
-
-  // ✅ normalize the remainder
-  after = stripOuterParens(after);
+  const after  = expr.slice(idx + marker.length);
 
   return before + fnName + '(' + after + ')';
 }
 
 
 function expandPrefixFunctions(expr) {
-  expr = expandPrefix(expr, '__LOG__', 'Math.log10');
-  expr = expandPrefix(expr, '__LN__', 'Math.log');
+  expr = expandPrefix(expr, '__LOG__',  'Math.log10');
+  expr = expandPrefix(expr, '__LN__',   'Math.log');
   expr = expandPrefix(expr, '__SQRT__', 'Math.sqrt');
   return expr;
 }
@@ -629,13 +626,5 @@ function inputNegative() {
 function lastTokenIsUnaryMinus() {
   if (tokenStack.length === 0) return false;
   return tokenStack[tokenStack.length - 1].entryPart === '-';
-}
-
-function stripOuterParens(str) {
-  str = str.trim();
-  if (str.startsWith('(') && str.endsWith(')')) {
-    return str.slice(1, -1);
-  }
-  return str;
 }
 
