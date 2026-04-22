@@ -344,6 +344,7 @@ function handleRclOrSto() {
 }
 
 function handleNthRoot() {
+  finalizePendingRoot();
   // Must have something before x√
   if (tokenStack.length === 0) return;
 
@@ -656,12 +657,15 @@ function countParens(str) {
 function finalizePendingRoot() {
   if (!pendingRootIndexToken) return;
 
-  // The radicand is everything typed AFTER x√
+  // Radicand is everything after ˣ√
   const radicand = entry.split('ˣ√').pop();
   const index = pendingRootIndexToken.evalPart;
 
-  // Remove the temporary display
-  entry = entry.replace(pendingRootIndexToken.entryPart + 'ˣ√' + radicand, '');
+  // Remove temporary display
+  entry = entry.replace(
+    pendingRootIndexToken.entryPart + 'ˣ√' + radicand,
+    ''
+  );
 
   // Push ONE atomic root token
   pushToken(
@@ -669,6 +673,8 @@ function finalizePendingRoot() {
     `${radicand}**(1/${index})`
   );
 
+  // ✅ FIX: fully reset root state
   pendingRootIndexToken = null;
 }
+
 
