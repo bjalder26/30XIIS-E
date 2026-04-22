@@ -32,3 +32,5 @@ These things need to be maintained in updates
 * Automatic Parenthesis Closure - log(5+5 = 2
 
 Github pages hosted emulator: https://bjalder26.github.io/30XIIS-E/
+
+<sub>*TI-30XIIS is a trademark of Texas Instruments. This site is not affiliated with, endorsed by, or sponsored by Texas Instruments</sub>
