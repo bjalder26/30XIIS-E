@@ -25,20 +25,34 @@ const btnSecond = document.getElementById('btnSecond');
 
 /* ---------- Number Entry ---------- */
 function inputNumber(num) {
-  if (eeMode) {
-    eeExponentStr += num;
-    display = eeMantissa + 'E' + eeExponentStr;
+  // Finalize x√ when radicand starts
+  if (pendingRootIndexToken) {
+    const index = pendingRootIndexToken.evalPart;
+
+    // Push full root as ONE token
+    pushToken(
+      pendingRootIndexToken.entryPart + 'ˣ√' + num,
+      num + '**(1/' + index + ')'
+    );
+
+    pendingRootIndexToken = null;
+
+    // ❗ DO NOT TOUCH `display`
     updateDisplay();
     return;
   }
 
-  if (justEvaluated) {
-    clearAll(); // start new expression, but keep ANS internally
+  // EE handling
+  if (eeMode) {
+    eeExponentStr += num;
+    entry = eeMantissa + 'E' + eeExponentStr;
+    updateDisplay();
+    return;
   }
 
-  pushToken(num, num);
+  if (justEvaluated) clearAll();
 
-  // ❗ DO NOT touch `display` here
+  pushToken(num, num);
   updateDisplay();
 }
 
@@ -47,12 +61,13 @@ function inputNumber(num) {
 function enterEE() {
   if (justEvaluated) clearAll();
 
-  eeMantissa = display;   // use last ANS or typed number
+  // Use the already-typed number as mantissa
+  eeMantissa = entry;        // ✅ NOT display
   eeExponentStr = '';
   eeMode = true;
 
-  // Update EXPRESSION display, not main display
-  entry += eeMantissa + 'E';
+  // Show EE in the EXPRESSION display only
+  entry = eeMantissa + 'E';
   updateDisplay();
 }
 
@@ -62,15 +77,17 @@ function applyEE() {
   const exp = eeExponentStr === '' ? '0' : eeExponentStr;
 
   pushToken(
-    eeMantissa + 'E' + exp,
-    eeMantissa + 'e' + exp
+    eeMantissa + 'E' + exp,   // entry token
+    eeMantissa + 'e' + exp    // eval token
   );
 
   eeMantissa = '';
   eeExponentStr = '';
   eeMode = false;
-  display = '';
+
+  // Do NOT write to display here
 }
+
 
 /* ---------- Operators ---------- */
 
@@ -328,21 +345,21 @@ function handleRclOrSto() {
 }
 
 function handleNthRoot() {
-  // Cannot start x√ without a number before it
+  // Must have something before x√
   if (tokenStack.length === 0) return;
 
   // Pop the index token (e.g. "2")
   const indexToken = tokenStack.pop();
   pendingRootIndexToken = indexToken;
 
-  // Remove index from entry/expression
+  // Remove it from entry and expression
   entry = entry.slice(0, -indexToken.entryPart.length);
   expression = expression.slice(0, -indexToken.evalPart.length);
 
-  // Show x√ in display (but do NOT add eval yet)
+  // Show x√ in the EXPRESSION display only
   entry += indexToken.entryPart + 'ˣ√';
-  display = indexToken.entryPart + 'ˣ√';
 
+  // ❗ DO NOT TOUCH `display`
   updateDisplay();
 }
 
