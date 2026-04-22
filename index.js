@@ -1,5 +1,4 @@
 let display = '0';
-let currentInput = '';
 let secondMode = false;
 let memoryValue = null;
 let pendingRootIndex = null;
@@ -10,11 +9,14 @@ const MAX_EXPR_FONT = 30;
 const MIN_EXPR_FONT = 16;
 let tokenStack = [];
 let entry = '';
+let eeMantissa = '';
+let eeExponentStr = '';
+let pendingRootIndexToken = null;
+
 
 
 // EE state
 let eeMode = false;
-let eeExponent = '';
 
 let expression = '';
 let justEvaluated = false;
@@ -25,64 +27,73 @@ const btnSecond = document.getElementById('btnSecond');
 
 /* ---------- Number Entry ---------- */
 function inputNumber(num) {
-  // If entering radicand of xth root
-  if (pendingRootIndex !== null && currentInput === '') {
-    currentInput = num;
-    display = currentInput; // show radicand, not blank
+    if (pendingRootIndexToken) {
+    // Build radicand normally
+    pushToken(num, num);
+  
+    // If this is the first radicand digit, finalize the root
+    const index = pendingRootIndexToken.evalPart;
+    const radicand = num;
+  
+    // Replace last token (radicand) with full root expression
+    tokenStack.pop();
+  
+    pushToken(
+      pendingRootIndexToken.entryPart + 'ˣ√' + radicand,
+      radicand + '**(1/' + index + ')'
+    );
+  
+    pendingRootIndexToken = null;
+  
+    display = radicand;
+    updateDisplay();
+    return;
+  }
+  
+  if (eeMode) {
+    eeExponentStr += num;
+    display = eeMantissa + 'E' + eeExponentStr;
     updateDisplay();
     return;
   }
 
   if (justEvaluated) {
-    expression = '';
-    currentInput = '';
-    justEvaluated = false;
-  }
-
-  if (eeMode) {
-    if (num === '-' && eeExponent === '') {
-      eeExponent = '-';
-    } else {
-      eeExponent += num;
-    }
-    display = currentInput + 'E' + eeExponent;
-    updateDisplay();
-    return;
+    clearAll();
   }
 
   pushToken(num, num);
   display += num;
-
-  display = currentInput;
   updateDisplay();
 }
 
 /* ---------- EE Handling ---------- */
+
 function enterEE() {
-  if (justEvaluated) {
-    justEvaluated = false;
-  }
-  if (currentInput === '') currentInput = '1';
+  if (justEvaluated) clearAll();
+
+  eeMantissa = display;
+  eeExponentStr = '';
   eeMode = true;
-  eeExponent = '';
-  display = currentInput + 'E';
+
+  display = eeMantissa + 'E';
   updateDisplay();
 }
 
+
 function applyEE() {
-  if (!eeMode) {
-    commitCurrentInput();
-    return;
-  }
+  if (!eeMode) return;
 
-  const exponent = eeExponent === '' ? '0' : eeExponent;
+  const exp = eeExponentStr === '' ? '0' : eeExponentStr;
 
-  // Append scientific notation directly
-  expression += currentInput + 'e' + exponent;
+  pushToken(
+    eeMantissa + 'E' + exp,
+    eeMantissa + 'e' + exp
+  );
 
+  eeMantissa = '';
+  eeExponentStr = '';
   eeMode = false;
-  eeExponent = '';
-  currentInput = '';
+  display = '';
 }
 
 /* ---------- Operators ---------- */
@@ -107,7 +118,6 @@ function calculate() {
     // result stays on bottom line
     display = String(result);
     expression = '';
-    currentInput = display;
 
     justEvaluated = true;
     applyFormatMode();
@@ -116,45 +126,14 @@ function calculate() {
   } catch (e) {
     display = 'Error';
     expression = '';
-    currentInput = '';
     updateDisplay();
   }
 }
 
 /* ---------- Functions ---------- */
 function reciprocal() {
-  commitCurrentInput();
   pushToken('⁻¹', '**(-1)');
   display = '';
-  updateDisplay();
-}
-
-function toggleSign() {
-  justEvaluated = false;
-
-  // If we are entering an EE exponent, toggle exponent sign
-  if (eeMode) {
-    if (eeExponent.startsWith('-')) {
-      eeExponent = eeExponent.slice(1);
-    } else {
-      eeExponent = '-' + eeExponent;
-    }
-
-    display = currentInput + 'E' + eeExponent;
-    updateDisplay();
-    return;
-  }
-
-  // Normal mode: toggle mantissa sign
-  if (currentInput === '' || currentInput === '0') return;
-
-  if (currentInput.startsWith('-')) {
-    currentInput = currentInput.slice(1);
-  } else {
-    currentInput = '-' + currentInput;
-  }
-
-  display = currentInput;
   updateDisplay();
 }
 
@@ -163,7 +142,6 @@ function clearAll() {
   justEvaluated = false;
   display = '0';
   expression = '';
-  currentInput = '';
   eeMode = false;
   eeExponent = '';
   updateDisplay();
@@ -177,7 +155,6 @@ btnSecond.onclick = () => {
 
 function inputPi() {
   if (entry !== '' || justEvaluated) {
-    commitCurrentInput();
     pushToken('', '*'); 
   }
 
@@ -187,103 +164,25 @@ function inputPi() {
 }
 
 function addParen(p) {
-  if (justEvaluated) {
-    expression = currentInput;
-    justEvaluated = false;
-  }
-  if (p === '(') {
-    applyEE(); // finish EE if active
-    maybeInsertImplicitMultiply();
-  } else {
-    applyEE();
-  }
-
-  expression += p;
+  pushToken(p, p);
   display = '';
   updateDisplay();
 }
 
 function setOperator(op) {
   if (justEvaluated) {
-    // Use the result as-is, do NOT re-commit it
-    expression = currentInput;
-    currentInput = '';
     justEvaluated = false;
-  } else {
-    applyEE(); // normal path
   }
 
-  expression += op;
+  pushToken(op, op);
   display = '';
   updateDisplay();
 }
 
 function deleteChar() {
-  // 1️⃣ After equals: DEL does nothing
   if (justEvaluated) return;
 
-  
-  // First try token deletion
-    if (popToken()) {
-      updateDisplay();
-      return;
-    }
-  
-    // Fallback to old character-based deletion (numbers, operators)
-
-
-  // 2️⃣ Deleting EE exponent
-  if (eeMode) {
-    if (eeExponent !== '') {
-      // Remove exponent digits first
-      eeExponent = eeExponent.slice(0, -1);
-
-      if (eeExponent !== '') {
-        display = currentInput + 'E' + eeExponent;
-      } else {
-        // No exponent digits left — still showing E for now
-        display = currentInput + 'E';
-      }
-
-      updateDisplay();
-      return;
-    }
-
-    // ✅ No exponent digits left → exit EE mode and remove 'E'
-    eeMode = false;
-    eeExponent = '';
-    display = currentInput === '' ? '0' : currentInput;
-    updateDisplay();
-    return;
-  }
-
-  // 3️⃣ Deleting typed digits
-  if (currentInput !== '') {
-    currentInput = currentInput.slice(0, -1);
-
-    if (currentInput === '') {
-      display = '0';
-    } else {
-      display = currentInput;
-    }
-
-    updateDisplay();
-    return;
-  }
-
-  // 4️⃣ Cancel pending xth-root
-  if (pendingRootIndex !== null) {
-    pendingRootIndex = null;
-    display = '0';
-    updateDisplay();
-    return;
-  }
-
-  // 5️⃣ Delete from expression
-  if (expression !== '') {
-    expression = expression.slice(0, -1);
-
-    display = expression === '' ? '0' : expression;
+  if (popToken()) {
     updateDisplay();
   }
 }
@@ -299,6 +198,8 @@ function updateDisplay() {
 }
 
 function maybeInsertImplicitMultiply() {
+  // disabled during token migration
+  /*
   if (expression === '') return;
 
   const lastChar = expression.slice(-1);
@@ -313,7 +214,6 @@ function maybeInsertImplicitMultiply() {
 
 function applyUnary(fnName) {
   if (entry !== '' || justEvaluated) {
-    commitCurrentInput();
     pushToken('', '*');
   }
 
@@ -330,7 +230,6 @@ function applyUnary(fnName) {
 function handleLogOrTenPower() {
   if (secondMode) {
     if (entry !== '' || justEvaluated) {
-      commitCurrentInput();
       pushToken('', '*');
     }
   
@@ -341,12 +240,12 @@ function handleLogOrTenPower() {
   }
 
   applyUnary('log');
+  */
 }
 
 function handleLnOrExp() {
   if (secondMode) {
     if (entry !== '' || justEvaluated) {
-      commitCurrentInput();
       pushToken('', '*');
     }
   
@@ -362,7 +261,6 @@ function handleLnOrExp() {
 function handleSqrtOrSquare() {
   if (secondMode) {
     // x² (postfix)
-    commitCurrentInput();
     pushToken('²', '**2');
     display = '';
     updateDisplay();
@@ -371,7 +269,6 @@ function handleSqrtOrSquare() {
 
   // √ (prefix with implicit multiply)
   if (entry !== '' || justEvaluated) {
-    commitCurrentInput();
     pushToken('', '*'); 
   }
   
@@ -401,13 +298,6 @@ function storeValue() {
   if (eeMode) {
     applyEE();
   }
-  // If we just evaluated, value is already in currentInput
-  if (currentInput !== '') {
-    memoryValue = Number(currentInput);
-  } else {
-    return; // nothing reasonable to store
-  }
-  // STO does NOT change entry state
 }
 
 function recallValue() {
@@ -437,40 +327,24 @@ function handleRclOrSto() {
 }
 
 function handleNthRoot() {
-  if (eeMode) applyEE();
+  // Cannot start x√ without a number before it
+  if (tokenStack.length === 0) return;
 
-  if (currentInput === '' && justEvaluated) {
-    currentInput = display; // ANS as index
-    expression = '';
-    justEvaluated = false;
-  }
+  // Pop the index token (e.g. "2")
+  const indexToken = tokenStack.pop();
+  pendingRootIndexToken = indexToken;
 
-  if (currentInput === '') return;
+  // Remove index from entry/expression
+  entry = entry.slice(0, -indexToken.entryPart.length);
+  expression = expression.slice(0, -indexToken.evalPart.length);
 
-  pendingRootIndex = currentInput;
-  currentInput = '';
-  display = pendingRootIndex + 'ˣ√';
+  // Show x√ in display (but do NOT add eval yet)
+  entry += indexToken.entryPart + 'ˣ√';
+  display = indexToken.entryPart + 'ˣ√';
+
   updateDisplay();
 }
 
-function commitCurrentInput() {
-  currentInput = '';
-}
-/*
-function commitCurrentInput() {
-  if (currentInput === '') return;
-
-  if (pendingRootIndex !== null) {
-    // Build: (x)^(1/n)
-    expression += '(' + currentInput + ')^(1/' + pendingRootIndex + ')';
-    pendingRootIndex = null;
-  } else {
-    expression += currentInput;
-  }
-
-  currentInput = '';
-}
-*/
 function handlePowerOrNthRoot() {
   if (secondMode) {
     handleNthRoot();
@@ -486,7 +360,6 @@ function resetCalculator() {
 
   // Clear calculation state
   expression = '';
-  currentInput = '';
   display = '0';
 
   // Clear modes / flags
