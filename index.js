@@ -27,29 +27,6 @@ const btnSecond = document.getElementById('btnSecond');
 
 /* ---------- Number Entry ---------- */
 function inputNumber(num) {
-    if (pendingRootIndexToken) {
-    // Build radicand normally
-    pushToken(num, num);
-  
-    // If this is the first radicand digit, finalize the root
-    const index = pendingRootIndexToken.evalPart;
-    const radicand = num;
-  
-    // Replace last token (radicand) with full root expression
-    tokenStack.pop();
-  
-    pushToken(
-      pendingRootIndexToken.entryPart + 'ˣ√' + radicand,
-      radicand + '**(1/' + index + ')'
-    );
-  
-    pendingRootIndexToken = null;
-  
-    display = radicand;
-    updateDisplay();
-    return;
-  }
-  
   if (eeMode) {
     eeExponentStr += num;
     display = eeMantissa + 'E' + eeExponentStr;
@@ -58,11 +35,12 @@ function inputNumber(num) {
   }
 
   if (justEvaluated) {
-    clearAll();
+    clearAll(); // start new expression, but keep ANS internally
   }
 
   pushToken(num, num);
-  display += num;
+
+  // ❗ DO NOT touch `display` here
   updateDisplay();
 }
 
@@ -112,20 +90,26 @@ function calculate() {
       .replace(/e\*\*\(/g, 'Math.exp(')
       .replace(/sqrt\(/g, 'Math.sqrt(')
       .replace(/π/g, 'Math.PI');
+
     const result = Function('"use strict"; return (' + safeExpr + ')')();
 
-    // top line clears
-    // result stays on bottom line
+    // ✅ Show result in MAIN display only
     display = String(result);
+
+    // ✅ Clear expression (top display)
+    entry = '';
     expression = '';
+    tokenStack = [];
 
     justEvaluated = true;
-    applyFormatMode();
 
+    applyFormatMode();
     updateDisplay();
   } catch (e) {
     display = 'Error';
+    entry = '';
     expression = '';
+    tokenStack = [];
     updateDisplay();
   }
 }
