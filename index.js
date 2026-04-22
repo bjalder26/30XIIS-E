@@ -25,24 +25,14 @@ const btnSecond = document.getElementById('btnSecond');
 
 /* ---------- Number Entry ---------- */
 function inputNumber(num) {
-  // Finalize x√ when radicand starts
-  if (pendingRootIndexToken) {
-    const index = pendingRootIndexToken.evalPart;
-
-    // Push full root as ONE token
-    pushToken(
-      pendingRootIndexToken.entryPart + 'ˣ√' + num,
-      num + '**(1/' + index + ')'
-    );
-
-    pendingRootIndexToken = null;
-
-    // ❗ DO NOT TOUCH `display`
-    updateDisplay();
-    return;
+  // If last token is π or ) or a superscript, insert implicit multiply
+  if (tokenStack.length > 0) {
+    const last = tokenStack[tokenStack.length - 1].entryPart;
+    if (last === 'π' || last === ')' || last === '²' || last === '⁻¹') {
+      pushToken('', '*');
+    }
   }
 
-  // EE handling
   if (eeMode) {
     eeExponentStr += num;
     entry = eeMantissa + 'E' + eeExponentStr;
@@ -166,12 +156,16 @@ btnSecond.onclick = () => {
 };
 
 function inputPi() {
-  if (entry !== '' || justEvaluated) {
-    pushToken('', '*'); 
+  if (justEvaluated) clearAll();
+
+  // Implicit multiply BEFORE π (2π)
+  if (entry !== '') {
+    pushToken('', '*');
   }
 
   pushToken('π', 'Math.PI');
-  display = 'π';
+
+  // ❗ DO NOT TOUCH `display`
   updateDisplay();
 }
 
