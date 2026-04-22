@@ -13,8 +13,6 @@ let eeMantissa = '';
 let eeExponentStr = '';
 let pendingRootIndexToken = null;
 
-
-
 // EE state
 let eeMode = false;
 
@@ -49,14 +47,14 @@ function inputNumber(num) {
 function enterEE() {
   if (justEvaluated) clearAll();
 
-  eeMantissa = display;
+  eeMantissa = display;   // use last ANS or typed number
   eeExponentStr = '';
   eeMode = true;
 
-  display = eeMantissa + 'E';
+  // Update EXPRESSION display, not main display
+  entry += eeMantissa + 'E';
   updateDisplay();
 }
-
 
 function applyEE() {
   if (!eeMode) return;
@@ -129,7 +127,7 @@ function clearAll() {
   expression = '';
 
   // Clear displays
-  display = '0';
+  display = '';
 
   // Clear modes / buffers
   eeMode = false;
@@ -394,14 +392,22 @@ function handleZeroOrReset() {
 function fitDisplayText() {
   const el = mainEl;
 
-  // 1️⃣ Always reset to max size first
+  // Reset to max
   el.style.fontSize = MAX_DISPLAY_FONT + 'px';
 
-  // 2️⃣ Shrink until it fits or hits minimum
+  // Force layout recalculation
+  el.getBoundingClientRect();
+
+  // Shrink until the FULL string fits
   while (el.scrollWidth > el.clientWidth) {
     const size = parseFloat(getComputedStyle(el).fontSize);
+
     if (size <= MIN_DISPLAY_FONT) break;
-    el.style.fontSize = size - 1 + 'px';
+
+    el.style.fontSize = (size - 1) + 'px';
+
+    // Force reflow after each shrink
+    el.getBoundingClientRect();
   }
 }
 
@@ -456,6 +462,7 @@ function applyFormatMode() {
       const exp = Math.floor(Math.log10(Math.abs(value)) / 3) * 3;
       const mantissa = value / Math.pow(10, exp);
       display = mantissa + 'E' + exp;
+      display = normalizeScientificDisplay(display);
       break;
     }
   }
@@ -539,4 +546,18 @@ function injectANS() {
   justEvaluated = false;
 }
 
+function normalizeScientificDisplay(str) {
+  const match = str.match(/^(-?\d+(\.\d+)?)(e[+-]?\d+)$/i);
+  if (!match) return str;
+
+  let mantissa = match[1];
+  const exponent = match[3];
+
+  // Limit mantissa to ~8 significant digits
+  if (mantissa.length > 10) {
+    mantissa = Number(mantissa).toPrecision(8);
+  }
+
+  return mantissa + exponent;
+}
 
