@@ -815,10 +815,12 @@ function isNumberContinuation(prev, next) {
 }
 
 function isValueEnder(token) {
+  // digit ends a value
+  if (/\d/.test(token)) return true;
+
   return (
     token === ')' ||
     token === 'π' ||
     token === '²'
-    // add other postfix operators here if needed
   );
 }
