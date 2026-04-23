@@ -16,6 +16,7 @@ let rootRadicandBuffer = '';
 let eePrefix = '';
 let rootPrefix = '';
 const DISPLAY_SIG_DIGITS = 10;
+const MAX_MANTISSA_SIG_DIGITS = 8;
 
 // EE state
 let eeMode = false;
@@ -140,7 +141,7 @@ function calculate() {
     ansValue = Number(result);
 
     // ✅ Display formatted result
-    display = formatForDisplay(ansValue);
+    display = ansValue;
     justEvaluated = true;
     applyFormatMode();
     
@@ -550,15 +551,15 @@ function applyFormatMode() {
     case 'OFF': {
       if (!needsScientific(ansValue)) {
         // Normal decimal
-        display = formatForDisplay(Number(ansValue).toLocaleString('en-US', {
+        display = Number(ansValue).toLocaleString('en-US', {
           useGrouping: false,
           maximumSignificantDigits: 21
-        }));
+        });
       } else {
         // Auto scientific fallback
         const exp = Math.floor(Math.log10(Math.abs(ansValue)));
         const mantissa = ansValue / Math.pow(10, exp);
-        display = formatForDisplay(renderScientific(mantissa, exp));
+        display = shrinkScientificString(renderScientific(mantissa, exp));
       }
       break;
     }
@@ -569,7 +570,7 @@ function applyFormatMode() {
       } else {
         const exp = Math.floor(Math.log10(Math.abs(ansValue)));
         const mantissa = ansValue / Math.pow(10, exp);
-        display = formatForDisplay(renderScientific(mantissa, exp));
+        display = shrinkScientificString(renderScientific(mantissa, exp));
       }
       break;
     }
@@ -580,7 +581,7 @@ function applyFormatMode() {
       } else {
         const exp = Math.floor(Math.log10(Math.abs(ansValue)) / 3) * 3;
         const mantissa = ansValue / Math.pow(10, exp);
-        display = formatForDisplay(renderScientific(mantissa, exp));
+        display = shrinkScientificString(renderScientific(mantissa, exp));
       }
       break;
     }
@@ -876,10 +877,34 @@ function needsScientific(value) {
   return abs >= 1e10 || abs < 1e-9;
 }
 
-function formatForDisplay(value) {
-  if (!isFinite(value)) return String(value);
+function shrinkScientificString(sciStr) {
+  // Expect format like: "-12.345678E6" or "8E3"
+  const match = sciStr.match(/^(-?)(\d+)(?:\.(\d+))?E(-?\d+)$/);
+  if (!match) return sciStr; // fallback safety
 
-  return Number(value)
-    .toPrecision(DISPLAY_SIG_DIGITS)
-    .replace(/\.?0+$/, '');
+  const sign = match[1];
+  const intPart = match[2];
+  const fracPart = match[3] || '';
+  const exponent = match[4];
+
+  const digits = intPart + fracPart;
+
+  if (digits.length <= MAX_MANTISSA_SIG_DIGITS) {
+    return sciStr; // nothing to shrink
+  }
+
+  const kept = digits.slice(0, MAX_MANTISSA_SIG_DIGITS);
+
+  let newMantissa;
+  if (kept.length <= intPart.length) {
+    newMantissa = kept;
+  } else {
+    newMantissa =
+      kept.slice(0, intPart.length) +
+      '.' +
+      kept.slice(intPart.length);
+  }
+
+  return sign + newMantissa.replace(/\.?0+$/, '') + 'E' + exponent;
 }
+
