@@ -14,6 +14,7 @@ let eeExponentStr = '';
 let pendingRootIndexToken = null;
 let rootRadicandBuffer = '';
 let eePrefix = '';
+let rootPrefix = '';
 
 // EE state
 let eeMode = false;
@@ -275,6 +276,12 @@ function updateDisplay() {
   if (eeMode) {
     exprEl.textContent =
       eePrefix + eeMantissa + 'E' + eeExponentStr;
+  } else if (pendingRootIndexToken) {
+    exprEl.textContent =
+      rootPrefix +
+      pendingRootIndexToken.entryPart +
+      'ˣ√' +
+      rootRadicandBuffer;
   } else {
     exprEl.textContent = entry;
   }
@@ -285,7 +292,7 @@ function updateDisplay() {
 }
 
 function applyUnary(fnName) {
-  if ((entry !== '' || justEvaluated) && !lastTokenIsUnaryMinus()) {
+  if (needsImplicitMultiplyBefore(fnName + '(')) {
     pushToken('', '*');
   }
 
@@ -301,7 +308,7 @@ function applyUnary(fnName) {
 
 function handleLogOrTenPower() {
   if (secondMode) {
-    if ((entry !== '' || justEvaluated) && !lastTokenIsUnaryMinus()) {
+    if (needsImplicitMultiplyBefore('₁₀^(')) {
       pushToken('', '*');
     }
   
@@ -316,7 +323,7 @@ function handleLogOrTenPower() {
 
 function handleLnOrExp() {
   if (secondMode) {
-    if ((entry !== '' || justEvaluated) && !lastTokenIsUnaryMinus()) {
+    if (needsImplicitMultiplyBefore('e^(')) {
       pushToken('', '*');
     }
   
@@ -330,23 +337,22 @@ function handleLnOrExp() {
 }
 
 function handleSqrtOrSquare() {
-  if (secondMode) {  
-  if (justEvaluated) {
-    injectANS();
-  }
-    // x² (postfix)
-    pushToken('²', '**2');
+  if (secondMode) {
+    // √ (prefix with implicit multiply)
+    if (needsImplicitMultiplyBefore('√(')) {
+    pushToken('', '*'); 
+    }
+    pushToken('√(', '__SQRT__');
     display = '';
     updateDisplay();
     return;
   }
-
-  // √ (prefix with implicit multiply)
-  if ((entry !== '' || justEvaluated) && !lastTokenIsUnaryMinus()) {
-    pushToken('', '*'); 
-  }
   
-  pushToken('√(', '__SQRT__');
+  if (justEvaluated) {
+    injectANS();
+  }
+  // x² (postfix)
+  pushToken('²', '**2');
   display = '';
   updateDisplay();
 }
@@ -391,7 +397,7 @@ function recallValue() {
   // Implicit multiply if needed (e.g., 2 RCL → 2×value)
   if (tokenStack.length > 0) {
     const last = tokenStack[tokenStack.length - 1].entryPart;
-    if (!['+', '-', '×', '÷', '^', '('].includes(last)) {
+    if (needsImplicitMultiplyBefore(valueStr)) {
       pushToken('', '*');
     }
   }
@@ -413,24 +419,35 @@ function handleRclOrSto() {
 }
 
 function handleNthRoot() {
-  // ✅ finalize any previous root
+  // Finalize any previous root
   finalizePendingRoot();
 
   if (tokenStack.length === 0) return;
 
+  // Capture prefix
+  rootPrefix = entry;
+
+  // Remove index token
   const indexToken = tokenStack.pop();
   pendingRootIndexToken = indexToken;
 
-  // ✅ reset radicand buffer for this root
+  // ✅ REMOVE INDEX FROM EXPRESSION
+  expression = expression.slice(
+    0,
+    -indexToken.evalPart.length
+  );
+
+  // Remove index visually from prefix
+  rootPrefix = rootPrefix.slice(
+    0,
+    rootPrefix.length - indexToken.entryPart.length
+  );
+
+  // Reset radicand
   rootRadicandBuffer = '';
 
-  entry = entry.slice(0, -indexToken.entryPart.length);
-  expression = expression.slice(0, -indexToken.evalPart.length);
-
-  entry += indexToken.entryPart + 'ˣ√';
   updateDisplay();
 }
-
 
 function handlePowerOrNthRoot() {
   if (justEvaluated) {
@@ -520,34 +537,53 @@ function handleSciEng() {
   updateFormatIndicator();
 }
 
-function applyFormatMode() {
-  // ✅ Only format an actual ANS
-  if (!justEvaluated) return;
-  if (display === '' || isNaN(display)) return;
 
-  const value = Number(display);
-  if (!isFinite(value)) return;
+function applyFormatMode() {
+  if (!justEvaluated || ansValue === null || !isFinite(ansValue)) return;
 
   switch (formatMode) {
-    case 'OFF':
-      display = String(value);
-      break;
-    case 'SCI':
-      display = value.toExponential();
-      break;
-    case 'ENG': {
-      if (value === 0) {
-        display = '0';
-        break;
+
+    case 'OFF': {
+      if (!needsScientific(ansValue)) {
+        // Normal decimal
+        display = Number(ansValue).toLocaleString('en-US', {
+          useGrouping: false,
+          maximumSignificantDigits: 21
+        });
+      } else {
+        // Auto scientific fallback
+        const exp = Math.floor(Math.log10(Math.abs(ansValue)));
+        const mantissa = ansValue / Math.pow(10, exp);
+        display = renderScientific(mantissa, exp);
       }
-      const exp = Math.floor(Math.log10(Math.abs(value)) / 3) * 3;
-      const mantissa = value / Math.pow(10, exp);
-      display = mantissa + 'E' + exp;
-      display = normalizeScientificDisplay(display);
+      break;
+    }
+
+    case 'SCI': {
+      if (ansValue === 0) {
+        display = '0';
+      } else {
+        const exp = Math.floor(Math.log10(Math.abs(ansValue)));
+        const mantissa = ansValue / Math.pow(10, exp);
+        display = renderScientific(mantissa, exp);
+      }
+      break;
+    }
+
+    case 'ENG': {
+      if (ansValue === 0) {
+        display = '0';
+      } else {
+        const exp = Math.floor(Math.log10(Math.abs(ansValue)) / 3) * 3;
+        const mantissa = ansValue / Math.pow(10, exp);
+        display = renderScientific(mantissa, exp);
+      }
       break;
     }
   }
 }
+
+
 
 function updateFormatIndicator() {
   const modeEl = document.getElementById('display-mode');
@@ -627,6 +663,7 @@ function injectANS() {
   justEvaluated = false;
 }
 
+/*
 function normalizeScientificDisplay(str) {
   const match = str.match(/^(-?\d+(\.\d+)?)(e[+-]?\d+)$/i);
   if (!match) return str;
@@ -641,6 +678,7 @@ function normalizeScientificDisplay(str) {
 
   return mantissa + exponent;
 }
+*/ 
 
 function expandPrefix(expr, marker, fnName) {
   const idx = expr.indexOf(marker);
@@ -715,11 +753,6 @@ function inputNegative() {
   updateDisplay();
 }
 
-function lastTokenIsUnaryMinus() {
-  if (tokenStack.length === 0) return false;
-  return tokenStack[tokenStack.length - 1].entryPart === '-';
-}
-
 function countParens(str) {
   let open = 0;
   let close = 0;
@@ -736,21 +769,16 @@ function finalizePendingRoot() {
   const radicand = rootRadicandBuffer || '0';
   const index = pendingRootIndexToken.evalPart;
 
-  // Remove temporary display
-  entry = entry.replace(
-    pendingRootIndexToken.entryPart + 'ˣ√' + radicand,
-    ''
-  );
-
-  // Push ONE atomic root token
   pushToken(
     pendingRootIndexToken.entryPart + 'ˣ√' + radicand,
     `${radicand}**(1/${index})`
   );
 
-  // ✅ CLEAR STATE
+  // ✅ Clear synthetic state
   pendingRootIndexToken = null;
   rootRadicandBuffer = '';
+  rootPrefix = '';
+
   rebuildEntry();
 }
 
@@ -830,4 +858,16 @@ function isValueEnder(token) {
     token === 'π' ||
     token === '²'
   );
+}
+
+function renderScientific(mantissa, exponent) {
+  let m = Number(mantissa).toPrecision(6).replace(/\.?0+$/, '');
+  return m + 'E' + exponent;
+}
+
+function needsScientific(value) {
+  if (value === 0) return false;
+
+  const abs = Math.abs(value);
+  return abs >= 1e10 || abs < 1e-9;
 }
