@@ -13,6 +13,7 @@ let eeMantissa = '';
 let eeExponentStr = '';
 let pendingRootIndexToken = null;
 let rootRadicandBuffer = '';
+let eePrefix = '';
 
 // EE state
 let eeMode = false;
@@ -67,14 +68,31 @@ function enterEE() {
     injectANS();
   }
 
-  const mantissa = extractNumericLiteral();
-  if (mantissa === null) return; // EE not valid here
+  // ✅ Save everything before the mantissa
+  eePrefix = entry.slice(0, entry.length);
 
-  eeMantissa = mantissa;
+  const mantissa = extractNumericLiteral();
+  if (mantissa === null) return;
+
+  // Remove mantissa visually from the prefix
+  eePrefix = eePrefix.slice(0, eePrefix.length - mantissa.length);
+
+  // Handle unary minus BEFORE mantissa
+  let signedMantissa = mantissa;
+  if (
+    tokenStack.length > 0 &&
+    tokenStack[tokenStack.length - 1].entryPart === '-'
+  ) {
+    tokenStack.pop();
+    expression = expression.slice(0, -1);
+    eePrefix = eePrefix.slice(0, -1);
+    signedMantissa = '-' + mantissa;
+  }
+
+  eeMantissa = signedMantissa;
   eeExponentStr = '';
   eeMode = true;
 
-  // Entry display will now come from EE mode
   updateDisplay();
 }
 
@@ -97,7 +115,7 @@ function applyEE() {
 /* ---------- Operators ---------- */
 function calculate() {
   // ✅ Case: no pending expression
-  if (expression === '' && tokenStack.length === 0) {
+  if (expression === '' && tokenStack.length === 0 && !pendingRootIndexToken && !eeMode ) {
     return; // do nothing
   }
 
@@ -255,33 +273,15 @@ function deleteChar() {
 
 function updateDisplay() {
   if (eeMode) {
-    // ✅ During EE entry, show mantissa + E + exponent
     exprEl.textContent =
-      eeMantissa + 'E' + eeExponentStr;
+      eePrefix + eeMantissa + 'E' + eeExponentStr;
   } else {
     exprEl.textContent = entry;
   }
 
   mainEl.textContent = formatDisplay(display);
-
   fitExpressionText();
   fitDisplayText();
-}
-
-function maybeInsertImplicitMultiply() {
-  // disabled during token migration
-  /*
-  if (expression === '') return;
-
-  const lastChar = expression.slice(-1);
-
-  // implicit multiplication rules:
-  // number followed by '('  → multiply
-  // ')' followed by '('     → multiply
-  if (/\d/.test(lastChar) || lastChar === ')') {
-    pushToken('', '*');
-  }
-  */
 }
 
 function applyUnary(fnName) {
@@ -692,18 +692,25 @@ function canInsertUnaryMinus() {
   return false;
 }
 
-
 function inputNegative() {
-  // If last action was '=', apply to ANS
+  // ✅ If we are entering an EE exponent, toggle exponent sign
+  if (eeMode) {
+    if (eeExponentStr.startsWith('-')) {
+      eeExponentStr = eeExponentStr.slice(1);
+    } else {
+      eeExponentStr = '-' + eeExponentStr;
+    }
+    updateDisplay();
+    return;
+  }
+
+  // Normal unary minus behavior
   if (justEvaluated) {
     injectANS();
   }
 
-  if (!canInsertUnaryMinus()) {
-    return; // do nothing
-  }
+  if (!canInsertUnaryMinus()) return;
 
-  // Insert unary minus token
   pushToken('-', '-');
   updateDisplay();
 }
