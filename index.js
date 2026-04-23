@@ -212,17 +212,20 @@ function inputPi() {
 }
 
 function addParen(p) {
+  if (justEvaluated) {
+    clearAll();        // ✅ start a new expression
+  }
+
   finalizePendingRoot();
 
-  // ✅ Only for opening parenthesis
   if (p === '(' && needsImplicitMultiplyBefore('(')) {
     pushToken('', '*');
   }
 
   pushToken(p, p);
-  display = '';
   updateDisplay();
 }
+
 
 function setOperator(op) {
   if (justEvaluated) {
