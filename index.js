@@ -15,6 +15,7 @@ let pendingRootIndexToken = null;
 let rootRadicandBuffer = '';
 let eePrefix = '';
 let rootPrefix = '';
+const DISPLAY_SIG_DIGITS = 10;
 
 // EE state
 let eeMode = false;
@@ -139,7 +140,7 @@ function calculate() {
     ansValue = Number(result);
 
     // ✅ Display formatted result
-    display = String(ansValue);
+    display = formatForDisplay(ansValue);
     justEvaluated = true;
     applyFormatMode();
     
@@ -549,15 +550,15 @@ function applyFormatMode() {
     case 'OFF': {
       if (!needsScientific(ansValue)) {
         // Normal decimal
-        display = Number(ansValue).toLocaleString('en-US', {
+        display = formatForDisplay(Number(ansValue).toLocaleString('en-US', {
           useGrouping: false,
           maximumSignificantDigits: 21
-        });
+        }));
       } else {
         // Auto scientific fallback
         const exp = Math.floor(Math.log10(Math.abs(ansValue)));
         const mantissa = ansValue / Math.pow(10, exp);
-        display = renderScientific(mantissa, exp);
+        display = formatForDisplay(renderScientific(mantissa, exp));
       }
       break;
     }
@@ -568,7 +569,7 @@ function applyFormatMode() {
       } else {
         const exp = Math.floor(Math.log10(Math.abs(ansValue)));
         const mantissa = ansValue / Math.pow(10, exp);
-        display = renderScientific(mantissa, exp);
+        display = formatForDisplay(renderScientific(mantissa, exp));
       }
       break;
     }
@@ -579,7 +580,7 @@ function applyFormatMode() {
       } else {
         const exp = Math.floor(Math.log10(Math.abs(ansValue)) / 3) * 3;
         const mantissa = ansValue / Math.pow(10, exp);
-        display = renderScientific(mantissa, exp);
+        display = formatForDisplay(renderScientific(mantissa, exp));
       }
       break;
     }
@@ -873,4 +874,12 @@ function needsScientific(value) {
 
   const abs = Math.abs(value);
   return abs >= 1e10 || abs < 1e-9;
+}
+
+function formatForDisplay(value) {
+  if (!isFinite(value)) return String(value);
+
+  return Number(value)
+    .toPrecision(DISPLAY_SIG_DIGITS)
+    .replace(/\.?0+$/, '');
 }
