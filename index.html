@@ -10,9 +10,15 @@
           <div class="model-name">30XIIS-E</div>
           <div class="subheader">An emulator for the TI-30XIIS* user interface</div>
         </div>
-        <div class="display">
-          <div class="display-mode" id="display-mode"></div>
-          <div class="display-expression" id="display-expression"></div>
+        <div class="display">   
+        <div class="display-modes">
+          <div class="display-mode" id="display-hyp"></div>
+          <div class="display-mode" id="display-format"></div>
+          <div class="display-mode" id="display-sto"></div>
+        </div>
+          <div class="expr-viewport">
+            <div id="display-expression"></div>
+          </div>
           <div class="display-main" id="display-main"></div>
         </div>
     
@@ -25,7 +31,7 @@
           </button>
  
           <button class="func" onclick="deleteChar()">
-            <span class="btn-secondary">INS</span>DEL
+            <span class="btn-secondary disabled">INS</span>DEL
           </button>
     
           <button class="func"></button>
@@ -35,8 +41,8 @@
           <button class="func enlargeText" onclick="handleLogOrTenPower()">
             <span class="btn-secondary enlargeText">10ˣ</span>log
           </button>
-          <button class="func"><span class="btn-secondary">F◄►D</span>PBR</button>
-          <button class="func"><span class="btn-secondary">R↔P</span>° ′ ″</button>
+          <button class="func disabled"><span class="btn-secondary">F◄►D</span>PBR</button>
+          <button class="func disabled"><span class="btn-secondary">R↔P</span>° ′ ″</button>
           <button class="func"></button>
           <button class="func"></button>
           <!-- Row 3 -->
@@ -44,13 +50,13 @@
             <span class="btn-secondary enlargeText">eˣ</span>ln
           </button>
     
-          <button class="func">
+          <button class="func disabled">
             <span class="btn-secondary" style="font-size: 7px">A b/c◄►d/e</span>A
             b/c
           </button>
     
-          <button class="func"><span class="btn-secondary">STAT</span>DATA</button>
-          <button class="func">
+          <button class="func disabled"><span class="btn-secondary">STAT</span>DATA</button>
+          <button class="func disabled">
             <span class="btn-secondary">EXIT STAT</span>STATVAR
           </button>
     
@@ -63,11 +69,17 @@
             <span class="btn-secondary">HYP</span>π
           </button>
     
-          <button class="func"><span class="btn-secondary">sin⁻¹</span>sin</button>
-    
-          <button class="func"><span class="btn-secondary">cos⁻¹</span>cos</button>
-    
-          <button class="func"><span class="btn-secondary">tan⁻¹</span>tan</button>
+          <button class="func" onclick="handleSin()">
+            <span class="btn-secondary">sin⁻¹</span>sin
+          </button>
+
+          <button class="func" onclick="handleCos()">
+            <span class="btn-secondary">cos⁻¹</span>cos
+          </button>
+
+          <button class="func" onclick="handleTan()">
+            <span class="btn-secondary">tan⁻¹</span>tan
+          </button>
     
           <button class="func"></button>
     
@@ -80,15 +92,15 @@
             <span class="btn-secondary enlargeText">EE</span>x⁻¹
           </button>
     
-          <button class="func enlargeText" onclick="addParen('(')">
-            <span class="btn-secondary">%</span>(
+          <button class="func enlargeText" onclick="addPercentOrParen()">
+            <span class="btn-secondary enlargeText">%</span>(
           </button>
           <button class="func enlargeText" onclick="addParen(')')">
-            <span class="btn-secondary">,</span>)
+            <span class="btn-secondary disabled">,</span>)
           </button>
     
           <button class="op" onclick="setOperator('÷')">
-            <span class="btn-secondary">K</span>÷
+            <span class="btn-secondary disabled">K</span>÷
           </button>
     
           <!-- Row 6 -->
@@ -103,7 +115,7 @@
           <button class="op" onclick="setOperator('×')">×</button>
     
           <!-- Row 7 -->
-          <button class="func">
+          <button class="func disabled">
             <span class="btn-secondary">CLRVAR</span>MEMVAR
           </button>
     
@@ -131,11 +143,11 @@
             <span class="btn-secondary">reset</span>0
           </button>
           <button class="num" onclick="inputNumber('.')">
-            <span class="btn-secondary">fix</span>.
+            <span class="btn-secondary disabled">fix</span>.
           </button>
     
           <button class="num" onclick="inputNegative()">
-            <span class="btn-secondary">ans</span>(−)
+            <span class="btn-secondary disabled">ans</span>(−)
           </button>
     
           <button class="op" onclick="calculate()">=</button>

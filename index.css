@@ -284,3 +284,54 @@ span.enlargeText {
   pointer-events: none;        /* never interfere with clicks */
   user-select: none;
 }
+
+.expr-viewport {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+#display-expression {
+  white-space: nowrap;
+  position: relative;
+}
+
+.disabled {
+  opacity: 0.5;                 /* Visual cue */
+  pointer-events: none;         /* Prevent clicks */
+  filter: grayscale(60%);       /* Optional: soften colors */
+}
+
+button.disabled {
+  pointer-events: none;         /* Prevent clicks */
+}
+
+button.disabled:hover {
+  cursor: default;
+}
+
+button.hyp-active {
+  background-color: #ddd;
+}
+
+.display-modes {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.display-mode {
+  min-width: 3ch;
+  text-align: center;
+}
+
+#display-hyp {
+  left: 42px;
+}
+
+#display-sto {
+  color: #444;
+  left: 138px;
+}
+

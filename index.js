@@ -15,8 +15,13 @@ let pendingRootIndexToken = null;
 let rootRadicandBuffer = '';
 let eePrefix = '';
 let rootPrefix = '';
-const DISPLAY_SIG_DIGITS = 10;
-const MAX_MANTISSA_SIG_DIGITS = 8;
+const MAX_MANTISSA_SIG_DIGITS = 6; // or 7, or 8 — your choice
+const MAX_MAIN_CHARS = 12;     // main display (result)
+const MAX_EXPR_NUMBER_CHARS = 10; // numbers inserted into expression
+const MAX_SCI_MANTISSA_DIGITS = 6;
+let hypMode = false;
+
+
 
 // EE state
 let eeMode = false;
@@ -133,7 +138,32 @@ function calculate() {
       .replace(/÷/g, '/')
       .replace(/−/g, '-')
       .replace(/\^/g, '**')
-      .replace(/π/g, 'Math.PI');
+      .replace(/π/g, 'Math.PI')
+      .replace(
+        /Math\.sin\(([^()]*)\)/g,
+        'Math.sin(toRadians($1))'
+      )
+      .replace(
+        /Math\.cos\(([^()]*)\)/g,
+        'Math.cos(toRadians($1))'
+      )
+      .replace(
+        /Math\.tan\(([^()]*)\)/g,
+        'Math.tan(toRadians($1))'
+      )
+      .replace(
+        /Math\.asin\(([^()]*)\)/g,
+        'toDegrees(Math.asin($1))'
+      )
+      .replace(
+        /Math\.acos\(([^()]*)\)/g,
+        'toDegrees(Math.acos($1))'
+      )
+      .replace(
+        /Math\.atan\(([^()]*)\)/g,
+        'toDegrees(Math.atan($1))'
+      );
+
 
     const result = Function('"use strict"; return (' + evalExpr + ')')();
 
@@ -214,10 +244,6 @@ function inputPi() {
 }
 
 function addParen(p) {
-  if (justEvaluated) {
-    clearAll();        // ✅ start a new expression
-  }
-
   finalizePendingRoot();
 
   if (p === '(' && needsImplicitMultiplyBefore('(')) {
@@ -271,10 +297,22 @@ function deleteChar() {
   }
 
   // 3️⃣ Normal token deletion
-  if (popToken()) {
-    rebuildEntry();
-    updateDisplay();
+  const removed = tokenStack.pop();
+  if (!removed) return;
+
+  // Remove from expression as usual
+  expression = expression.slice(0, -removed.evalPart.length);
+
+  // ✅ NEW: auto-collapse implicit multiplication
+  const last = tokenStack[tokenStack.length - 1];
+  if (last && isImplicitMultiplyToken(last)) {
+    // Remove the implicit '*'
+    tokenStack.pop();
+    expression = expression.slice(0, -1);
   }
+
+  rebuildEntry();
+  updateDisplay();
 }
 
 function updateDisplay() {
@@ -326,6 +364,27 @@ function handleLogOrTenPower() {
   applyUnary('log');
 }
 
+function addPercentOrParen() {
+  if (secondMode) {
+    handlePercent();
+    return
+    }
+    addParen('(')
+}
+
+function handlePercent() {
+  if (justEvaluated) {
+    injectANS();
+  }
+
+  if (tokenStack.length === 0) return;
+
+  // Percent is postfix: x% → x * 0.01
+  pushToken('%', '*0.01');
+
+  updateDisplay();
+}
+
 function handleLnOrExp() {
   if (secondMode) {
     if (needsImplicitMultiplyBefore('e^(')) {
@@ -375,17 +434,17 @@ function handleEeOrReciprocal() {
 
 function handleHypOrPi() {
   if (secondMode) {
-    // HYP (not implemented yet)
+    toggleHyp();
     return;
   }
   inputPi();
 }
 
 function storeValue() {
-  // If there is no result yet, do nothing
   if (display === '' || display === 'Error') return;
 
   memoryValue = Number(display);
+  updateStoIndicator();
 }
 
 function recallValue() {
@@ -399,21 +458,22 @@ function recallValue() {
     justEvaluated = false;
   }
 
-  // Implicit multiply if needed (e.g., 2 RCL → 2×value)
-  if (tokenStack.length > 0) {
-    const last = tokenStack[tokenStack.length - 1].entryPart;
-    if (needsImplicitMultiplyBefore(valueStr)) {
-      pushToken('', '*');
-    }
+  // Convert memory to a string the user can reasonably edit
+  const valueStr = trimNumberString(
+    String(memoryValue),
+    MAX_EXPR_NUMBER_CHARS
+  );
+
+  // Implicit multiplication if needed (e.g., 2 RCL → 2×value)
+  if (needsImplicitMultiplyBefore(valueStr)) {
+    pushToken('', '*');
   }
 
-  // Insert recalled value as a token
-  const valueStr = String(memoryValue);
+  // Insert recalled value as one atomic token
   pushToken(valueStr, valueStr);
 
   updateDisplay();
 }
-
 
 function handleRclOrSto() {
   if (secondMode) {
@@ -467,15 +527,20 @@ function handlePowerOrNthRoot() {
 }
 
 function resetCalculator() {
-  // ✅ reuse correct logic
   clearAll();
 
-  // ✅ then reset the extras
   memoryValue = null;
   formatMode = 'OFF';
   secondMode = false;
+  hypMode = false;
+
+  if (btnSecond) {
+    btnSecond.classList.remove('second-active');
+  }
 
   updateFormatIndicator();
+  updateHypIndicator();
+  updateStoIndicator();
 }
 
 function handleZeroOrReset() {
@@ -513,14 +578,29 @@ function fitDisplayText() {
 }
 
 function fitExpressionText() {
-  const el = exprEl;
+  const expr = exprEl;
+  const viewport = expr.parentElement;
 
-  el.style.fontSize = MAX_EXPR_FONT + 'px';
+  // Reset state
+  expr.style.fontSize = MAX_EXPR_FONT + 'px';
+  expr.style.transform = 'translateX(0px)';
 
-  while (el.scrollWidth > el.clientWidth) {
-    const size = parseFloat(getComputedStyle(el).fontSize);
-    if (size <= MIN_EXPR_FONT) break;
-    el.style.fontSize = size - 1 + 'px';
+  // Shrink font while possible
+  while (expr.scrollWidth > viewport.clientWidth) {
+    const size = parseFloat(getComputedStyle(expr).fontSize);
+
+    if (size <= MIN_EXPR_FONT) {
+      expr.style.fontSize = MIN_EXPR_FONT + 'px';
+      break;
+    }
+
+    expr.style.fontSize = (size - 1) + 'px';
+  }
+
+  // If it still overflows, shift left
+  const overflow = expr.scrollWidth - viewport.clientWidth;
+  if (overflow > 0) {
+    expr.style.transform = `translateX(${-overflow}px)`;
   }
 }
 
@@ -548,52 +628,76 @@ function applyFormatMode() {
 
   switch (formatMode) {
 
+    /* ---------- OFF MODE ---------- */
     case 'OFF': {
       if (!needsScientific(ansValue)) {
-        // Normal decimal
-        display = Number(ansValue).toLocaleString('en-US', {
+        // Plain decimal, trimmed by characters
+        const dec = Number(ansValue).toLocaleString('en-US', {
           useGrouping: false,
           maximumSignificantDigits: 21
         });
+
+        display = trimNumberString(dec, MAX_MAIN_CHARS);
       } else {
         // Auto scientific fallback
         const exp = Math.floor(Math.log10(Math.abs(ansValue)));
         const mantissa = ansValue / Math.pow(10, exp);
-        display = shrinkScientificString(renderScientific(mantissa, exp));
+
+        const sci = shrinkScientificString(
+          renderScientific(mantissa, exp),
+          MAX_SCI_MANTISSA_DIGITS
+        );
+
+        display = trimNumberString(sci, MAX_MAIN_CHARS);
       }
       break;
     }
 
+    /* ---------- SCI MODE ---------- */
     case 'SCI': {
       if (ansValue === 0) {
         display = '0';
       } else {
         const exp = Math.floor(Math.log10(Math.abs(ansValue)));
         const mantissa = ansValue / Math.pow(10, exp);
-        display = shrinkScientificString(renderScientific(mantissa, exp));
+
+        const sci = shrinkScientificString(
+          renderScientific(mantissa, exp),
+          MAX_SCI_MANTISSA_DIGITS
+        );
+
+        display = trimNumberString(sci, MAX_MAIN_CHARS);
       }
       break;
     }
 
+    /* ---------- ENG MODE ---------- */
     case 'ENG': {
       if (ansValue === 0) {
         display = '0';
       } else {
         const exp = Math.floor(Math.log10(Math.abs(ansValue)) / 3) * 3;
         const mantissa = ansValue / Math.pow(10, exp);
-        display = shrinkScientificString(renderScientific(mantissa, exp));
+
+        const eng = shrinkScientificString(
+          renderScientific(mantissa, exp),
+          MAX_SCI_MANTISSA_DIGITS
+        );
+
+        display = trimNumberString(eng, MAX_MAIN_CHARS);
       }
       break;
     }
   }
 }
 
-
-
 function updateFormatIndicator() {
-  const modeEl = document.getElementById('display-mode');
-  modeEl.textContent = formatMode === 'OFF' ? '' : formatMode;
+  const el = document.getElementById('display-format');
+  if (!el) return;
+
+  el.textContent = formatMode === 'OFF' ? '' : formatMode;
 }
+
 
 document.addEventListener('DOMContentLoaded', () => {
   const keysEl = document.querySelector('.keys');
@@ -663,10 +767,13 @@ function popToken() {
   return true;
 }
 
+
 function injectANS() {
-  pushToken(display, display);
+  const trimmed = trimNumberString(display, MAX_EXPR_NUMBER_CHARS);
+  pushToken(trimmed, trimmed);
   justEvaluated = false;
 }
+
 
 /*
 function normalizeScientificDisplay(str) {
@@ -692,27 +799,83 @@ function expandPrefix(expr, marker, fnName) {
   const before = expr.slice(0, idx);
   let after = expr.slice(idx + marker.length);
 
-  const { open, close } = countParens(after);
-
-  // We are adding ONE '(' with fnName + '('
-  // We must add ONE ')' only if needed to balance
-  const needsClosingParen = close < open + 1;
+  // ✅ Strip trailing ')' that close the implicit prefix argument
+  // These will be replaced by the explicit wrapping below
+  while (after.endsWith(')')) {
+    after = after.slice(0, -1);
+  }
 
   return (
     before +
     fnName +
     '(' +
     after +
-    (needsClosingParen ? ')' : '')
+    ')'
   );
 }
 
 function expandPrefixFunctions(expr) {
-  expr = expandPrefix(expr, '__LOG__',    'Math.log10');
-  expr = expandPrefix(expr, '__LN__',     'Math.log');
-  expr = expandPrefix(expr, '__SQRT__',   'Math.sqrt');
-  expr = expandPrefix(expr, '__TENPOW__', '10**');
-  expr = expandPrefix(expr, '__EPOW__',   'Math.exp');
+  // logarithms / powers
+  while (expr.includes('__LOG__')) {
+    expr = expandPrefix(expr, '__LOG__', 'Math.log10');
+  }
+  while (expr.includes('__LN__')) {
+    expr = expandPrefix(expr, '__LN__', 'Math.log');
+  }
+  while (expr.includes('__SQRT__')) {
+    expr = expandPrefix(expr, '__SQRT__', 'Math.sqrt');
+  }
+  while (expr.includes('__TENPOW__')) {
+    expr = expandPrefix(expr, '__TENPOW__', '10**');
+  }
+  while (expr.includes('__EPOW__')) {
+    expr = expandPrefix(expr, '__EPOW__', 'Math.exp');
+  }
+
+  // trig
+  while (expr.includes('__SIN__')) {
+    expr = expandPrefix(expr, '__SIN__', 'Math.sin');
+  }
+  while (expr.includes('__COS__')) {
+    expr = expandPrefix(expr, '__COS__', 'Math.cos');
+  }
+  while (expr.includes('__TAN__')) {
+    expr = expandPrefix(expr, '__TAN__', 'Math.tan');
+  }
+
+  // inverse trig
+  while (expr.includes('__ASIN__')) {
+    expr = expandPrefix(expr, '__ASIN__', 'Math.asin');
+  }
+  while (expr.includes('__ACOS__')) {
+    expr = expandPrefix(expr, '__ACOS__', 'Math.acos');
+  }
+  while (expr.includes('__ATAN__')) {
+    expr = expandPrefix(expr, '__ATAN__', 'Math.atan');
+  }
+
+
+  while (expr.includes('__SINH__')) {
+    expr = expandPrefix(expr, '__SINH__', 'Math.sinh');
+  }
+  while (expr.includes('__COSH__')) {
+    expr = expandPrefix(expr, '__COSH__', 'Math.cosh');
+  }
+  while (expr.includes('__TANH__')) {
+    expr = expandPrefix(expr, '__TANH__', 'Math.tanh');
+  }
+
+  while (expr.includes('__ASINH__')) {
+    expr = expandPrefix(expr, '__ASINH__', 'Math.asinh');
+  }
+  while (expr.includes('__ACOSH__')) {
+    expr = expandPrefix(expr, '__ACOSH__', 'Math.acosh');
+  }
+  while (expr.includes('__ATANH__')) {
+    expr = expandPrefix(expr, '__ATANH__', 'Math.atanh');
+  }
+
+
   return expr;
 }
 
@@ -866,7 +1029,14 @@ function isValueEnder(token) {
 }
 
 function renderScientific(mantissa, exponent) {
-  let m = Number(mantissa).toPrecision(6).replace(/\.?0+$/, '');
+  // Convert mantissa to a plain decimal string WITHOUT re-rounding
+  let m = String(mantissa);
+
+  // Normalize JS "1e-7" style just in case
+  if (m.includes('e') || m.includes('E')) {
+    m = Number(m).toString();
+  }
+
   return m + 'E' + exponent;
 }
 
@@ -877,10 +1047,11 @@ function needsScientific(value) {
   return abs >= 1e10 || abs < 1e-9;
 }
 
+
+
 function shrinkScientificString(sciStr) {
-  // Expect format like: "-12.345678E6" or "8E3"
   const match = sciStr.match(/^(-?)(\d+)(?:\.(\d+))?E(-?\d+)$/);
-  if (!match) return sciStr; // fallback safety
+  if (!match) return sciStr;
 
   const sign = match[1];
   const intPart = match[2];
@@ -888,10 +1059,7 @@ function shrinkScientificString(sciStr) {
   const exponent = match[4];
 
   const digits = intPart + fracPart;
-
-  if (digits.length <= MAX_MANTISSA_SIG_DIGITS) {
-    return sciStr; // nothing to shrink
-  }
+  if (digits.length <= MAX_MANTISSA_SIG_DIGITS) return sciStr;
 
   const kept = digits.slice(0, MAX_MANTISSA_SIG_DIGITS);
 
@@ -907,4 +1075,153 @@ function shrinkScientificString(sciStr) {
 
   return sign + newMantissa.replace(/\.?0+$/, '') + 'E' + exponent;
 }
+
+function trimNumberString(str, maxChars) {
+  // Ensure we're working with a string
+  str = String(str);
+
+  // If it already fits, return as-is
+  if (str.length <= maxChars) return str;
+
+  // Trim to the maximum allowed characters
+  let trimmed = str.slice(0, maxChars);
+
+  // Avoid leaving a dangling decimal point
+  if (trimmed.endsWith('.')) {
+    trimmed = trimmed.slice(0, -1);
+  }
+
+  return trimmed;
+}
+
+function isImplicitMultiplyToken(starToken) {
+  // Explicit '*' would appear in entry;
+  // implicit '*' never appears in entry.
+  return starToken.entryPart === '' && starToken.evalPart === '*';
+}
+
+function toRadians(deg) {
+  return deg * Math.PI / 180;
+}
+
+function toDegrees(rad) {
+  return rad * 180 / Math.PI;
+}
+
+function handleSin() {
+  if (justEvaluated) injectANS();
+
+  if (needsImplicitMultiplyBefore('sin(')) {
+    pushToken('', '*');
+  }
+
+  if (hypMode) {
+    if (secondMode) {
+      pushToken('asinh(', '__ASINH__');
+    } else {
+      pushToken('sinh(', '__SINH__');
+    }
+  } else {
+    if (secondMode) {
+      pushToken('sin⁻¹(', '__ASIN__');
+    } else {
+      pushToken('sin(', '__SIN__');
+    }
+  }
+
+  updateDisplay();
+}
+
+function handleCos() {
+  if (justEvaluated) injectANS();
+
+  if (needsImplicitMultiplyBefore('cos(')) {
+    pushToken('', '*');
+  }
+
+  if (hypMode) {
+    if (secondMode) {
+      pushToken('acosh(', '__ACOSH__');
+    } else {
+      pushToken('cosh(', '__COSH__');
+    }
+  } else {
+    if (secondMode) {
+      pushToken('cos⁻¹(', '__ACOS__');
+    } else {
+      pushToken('sin(', '__COS__');
+    }
+  }
+
+  updateDisplay();
+}
+
+function handleTan() {
+  if (justEvaluated) injectANS();
+
+  if (needsImplicitMultiplyBefore('tan(')) {
+    pushToken('', '*');
+  }
+
+  if (hypMode) {
+    if (secondMode) {
+      pushToken('atanh(', '__ATANH__');
+    } else {
+      pushToken('tanh(', '__TANH__');
+    }
+  } else {
+    if (secondMode) {
+      pushToken('tan⁻¹(', '__ATAN__');
+    } else {
+      pushToken('tan(', '__TAN__');
+    }
+  }
+
+  updateDisplay();
+}
+
+function canInsertCloseParen() {
+  let open = 0;
+  let close = 0;
+
+  for (const ch of expression) {
+    if (ch === '(') open++;
+    else if (ch === ')') close++;
+  }
+
+  return close < open;
+}
+
+function toggleHyp() {
+  hypMode = !hypMode;
+  updateHypIndicator();
+}
+
+function updateHypIndicator() {
+  const el = document.getElementById('display-hyp');
+  if (!el) return;
+
+  el.textContent = hypMode ? 'HYP' : '';
+}
+
+function updateStoIndicator() {
+  const el = document.getElementById('display-sto');
+  if (!el) return;
+
+  if (memoryValue === null) {
+    el.textContent = '';
+    return;
+  }
+
+  // Show exactly what would be reasonable to re-enter
+  const shown = trimNumberString(
+    String(memoryValue),
+    MAX_MAIN_CHARS
+  );
+
+  el.textContent = `STO► ${shown}`;
+}
+
+
+
 
