@@ -400,6 +400,15 @@ function handleLnOrExp() {
   applyUnary('ln');
 }
 
+function handleClrvarOrMemvar() {
+  if (secondMode) {
+    clearVar();
+    return;
+  }
+    
+  // does nothing
+}
+
 function handleSqrtOrSquare() {
   if (secondMode) {
     // √ (prefix with implicit multiply)
@@ -1220,6 +1229,11 @@ function updateStoIndicator() {
   );
 
   el.textContent = `STO► ${shown}`;
+}
+
+function clearVar() {
+  memoryValue = null;
+  updateStoIndicator();
 }
 
 
