@@ -20,6 +20,7 @@ const MAX_MAIN_CHARS = 12;     // main display (result)
 const MAX_EXPR_NUMBER_CHARS = 10; // numbers inserted into expression
 const MAX_SCI_MANTISSA_DIGITS = 6;
 let hypMode = false;
+const TRIG_EPSILON = 1e-12;
 
 
 
@@ -165,7 +166,9 @@ function calculate() {
       );
 
 
-    const result = Function('"use strict"; return (' + evalExpr + ')')();
+    let result = Function('"use strict"; return (' + evalExpr + ')')();
+
+    result = snapTrigResult(result);
 
     // ✅ Store ANS numerically
     ansValue = Number(result);
@@ -1158,7 +1161,7 @@ function handleCos() {
     if (secondMode) {
       pushToken('cos⁻¹(', '__ACOS__');
     } else {
-      pushToken('sin(', '__COS__');
+      pushToken('cos(', '__COS__');
     }
   }
 
@@ -1235,6 +1238,27 @@ function clearVar() {
   memoryValue = null;
   updateStoIndicator();
 }
+
+function snapTrigResult(x) {
+  if (!isFinite(x)) return x;
+
+  // Snap extremely small values to zero
+  if (Math.abs(x) < TRIG_EPSILON) return 0;
+
+  // Try snapping to reasonable decimal places
+  for (let places = 0; places <= 10; places++) {
+    const factor = Math.pow(10, places);
+    const rounded = Math.round(x * factor) / factor;
+
+    if (Math.abs(x - rounded) < TRIG_EPSILON) {
+      return rounded;
+    }
+  }
+
+  // Otherwise leave it alone
+  return x;
+}
+
 
 
 
