@@ -1275,7 +1275,7 @@ function wrapFunctionArg(expr, fnName, wrapper) {
 
     const before = expr.slice(0, idx);
     const arg = expr.slice(openParen + 1, closeParen);
-    const after = expr.slice(closeParen);
+    const after = expr.slice(closeParen + 1);
 
     expr =
       before +
