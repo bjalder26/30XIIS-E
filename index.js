@@ -139,32 +139,18 @@ function calculate() {
       .replace(/÷/g, '/')
       .replace(/−/g, '-')
       .replace(/\^/g, '**')
-      .replace(/π/g, 'Math.PI')
-      .replace(
-        /Math\.sin\(([^()]*)\)/g,
-        'Math.sin(toRadians($1))'
-      )
-      .replace(
-        /Math\.cos\(([^()]*)\)/g,
-        'Math.cos(toRadians($1))'
-      )
-      .replace(
-        /Math\.tan\(([^()]*)\)/g,
-        'Math.tan(toRadians($1))'
-      )
-      .replace(
-        /Math\.asin\(([^()]*)\)/g,
-        'toDegrees(Math.asin($1))'
-      )
-      .replace(
-        /Math\.acos\(([^()]*)\)/g,
-        'toDegrees(Math.acos($1))'
-      )
-      .replace(
-        /Math\.atan\(([^()]*)\)/g,
-        'toDegrees(Math.atan($1))'
-      );
+      .replace(/π/g, 'Math.PI');
 
+    evalExpr = wrapFunctionArg(evalExpr, 'Math.sin',  'toRadians');
+    evalExpr = wrapFunctionArg(evalExpr, 'Math.cos',  'toRadians');
+    evalExpr = wrapFunctionArg(evalExpr, 'Math.tan',  'toRadians');
+
+    evalExpr = wrapFunctionArg(evalExpr, 'Math.asin', 'toDegrees');
+    evalExpr = wrapFunctionArg(evalExpr, 'Math.acos', 'toDegrees');
+    evalExpr = wrapFunctionArg(evalExpr, 'Math.atan', 'toDegrees');
+
+    // ✅ Auto-close assumed parentheses
+    evalExpr = closeUnmatchedParens(evalExpr);
 
     let result = Function('"use strict"; return (' + evalExpr + ')')();
 
@@ -1258,6 +1244,68 @@ function snapTrigResult(x) {
   // Otherwise leave it alone
   return x;
 }
+
+function closeUnmatchedParens(expr) {
+  let open = 0;
+  let close = 0;
+
+  for (const ch of expr) {
+    if (ch === '(') open++;
+    else if (ch === ')') close++;
+  }
+
+  if (open > close) {
+    return expr + ')'.repeat(open - close);
+  }
+
+  return expr;
+}
+
+function wrapFunctionArg(expr, fnName, wrapper) {
+  let idx = expr.indexOf(fnName + '(');
+
+  while (idx !== -1) {
+    const openParen = idx + fnName.length;
+    let closeParen = findMatchingParen(expr, openParen);
+
+    // ✅ If no closing ')', assume argument runs to end
+    if (closeParen === -1) {
+      closeParen = expr.length;
+    }
+
+    const before = expr.slice(0, idx);
+    const arg = expr.slice(openParen + 1, closeParen);
+    const after = expr.slice(closeParen);
+
+    expr =
+      before +
+      fnName +
+      '(' +
+      wrapper +
+      '(' +
+      arg +
+      '))' +
+      after;
+
+    idx = expr.indexOf(fnName + '(', idx + 1);
+  }
+
+  return expr;
+}
+
+function findMatchingParen(str, openIndex) {
+  let depth = 0;
+
+  for (let i = openIndex; i < str.length; i++) {
+    if (str[i] === '(') depth++;
+    else if (str[i] === ')') depth--;
+
+    if (depth === 0) return i;
+  }
+
+  return -1; // no match
+}
+``
 
 
 
