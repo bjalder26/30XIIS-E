@@ -1,22 +1,22 @@
 # 30XIIS-E
 An emulator for the TI-30XIIS* user interface
 
-Buttons/functions that are grayed out don't work.
+* Buttons/functions that are grayed out don't work.
 * STO► only stores 1 number => no menu
 * STO► number is displayed at the bottom
-* CLRVAR clears out the stored number
+* CLRVAR clears out the stored number (as does reset, which clears all modes).
 * SCI/ENG will cycle through SCI → ENG → FLO rather than bringing up a menu like you would see with a TI-30XIIS.
-* ans works a bit differently (the ans button does nothing)
-* Scientific notation is displayed differently
+* ans works a bit differently (the ans button does nothing), but 
+* Scientific notation is displayed differently (e.g. 1.23E45).
 
 The emulator is geared towards being useful for teaching rather than strictly adhearing to how the TI-30XIIS functions.
 
 Feel free to sumbit requests as issues, or to submit PRs to add functionality.
 
 These things need to be maintained in updates
-* Tokinization (not just editing strings) - log( is deleted as a unit, not a character at a time
-* Implicit multiplication - 2(2) = 4
-* Automatic Parenthesis Closure - log(5+5 = 2
+* Tokinization (not just editing strings). For example, `log(` is deleted as a unit, not 1 character at a time.
+* Implicit multiplication: 2(2) = 4
+* Automatic Parenthesis Closure: log(5+5 = 2
 
 Github pages hosted emulator: https://bjalder26.github.io/30XIIS-E/
 
