@@ -193,23 +193,9 @@ body {
 /* ---------- Hover ---------- */
 
 .keys button:hover {
-  filter: brightness(1.12);
+  filter: brightness(1.30);
 }
 
-.keys button.num:hover {
-  filter: brightness(1.08);
-}
-
-.keys button.op:hover {
-  filter: brightness(1.15);
-}
-
-.keys button.func:hover,
-.keys button.ctrl:hover {
-  filter: brightness(1.18);
-}
-
-/* ---------- Press (All buttons EXCEPT 2nd) ---------- */
 
 .keys button:active {
   transform: translateY(3px);
@@ -218,7 +204,7 @@ body {
     inset 0 -1px 0 rgba(0, 0, 0, 0.25),
     0 1px 0 rgba(0, 0, 0, 0.35),
     0 3px 4px rgba(0, 0, 0, 0.25);
-  filter: brightness(0.96);
+  filter: brightness(0.85);
 }
 
 /* Prevent :active from altering 2nd key geometry */
@@ -264,7 +250,8 @@ span.enlargeText {
 }
 
 .keys button.op {
-  transform: translateY(-20px);
+  position: relative;
+  top: -20px;
 }
 
 .display {

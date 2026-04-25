@@ -1305,7 +1305,33 @@ function findMatchingParen(str, openIndex) {
 
   return -1; // no match
 }
-``
+
+document.addEventListener("keydown", async (e) => {
+  const isMac = navigator.platform.toUpperCase().includes("MAC");
+  const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
+
+  if (!ctrlOrCmd) return;
+
+  // Optional safety: don't hijack copy inside inputs
+  if (e.target.closest("input, textarea")) return;
+
+  if (e.key === "c" || e.key === "C") {
+    e.preventDefault(); // override normal copy behavior
+
+    const mainDisplay = document.getElementById("display-main");
+    if (!mainDisplay) return;
+
+    const text = mainDisplay.textContent.trim();
+    if (!text) return;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      console.log("Copied:", text);
+    } catch (err) {
+      console.warn("Clipboard write failed:", err);
+    }
+  }
+});
 
 
 
