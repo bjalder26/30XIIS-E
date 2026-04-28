@@ -62,7 +62,7 @@ function inputNumber(num) {
 
   // ✅ IMPLICIT MULTIPLY GOES HERE
   // This fixes: π2, (2)3, (2)(3)
-  if (needsImplicitMultiplyBefore(num)) {
+  if (needsImplicitMultiplyBefore(num) && !lastTokenIsEENumber()) {
     pushToken('', '*');
   }
 
@@ -224,7 +224,7 @@ function inputPi() {
   if (justEvaluated) clearAll();
 
   // ✅ Symmetric implicit multiplication
-  if (needsImplicitMultiplyBefore('π')) {
+  if (needsImplicitMultiplyBefore('π') && !lastTokenIsEENumber()) {
     pushToken('', '*');
   }
 
@@ -235,7 +235,7 @@ function inputPi() {
 function addParen(p) {
   finalizePendingRoot();
 
-  if (p === '(' && needsImplicitMultiplyBefore('(')) {
+  if (p === '(' && needsImplicitMultiplyBefore('(') && !lastTokenIsEENumber()) {
     pushToken('', '*');
   }
 
@@ -324,7 +324,7 @@ function updateDisplay() {
 }
 
 function applyUnary(fnName) {
-  if (needsImplicitMultiplyBefore(fnName + '(')) {
+  if (needsImplicitMultiplyBefore(fnName + '(') && !lastTokenIsEENumber()) {
     pushToken('', '*');
   }
 
@@ -340,7 +340,7 @@ function applyUnary(fnName) {
 
 function handleLogOrTenPower() {
   if (secondMode) {
-    if (needsImplicitMultiplyBefore('₁₀^(')) {
+    if (needsImplicitMultiplyBefore('₁₀^(') && !lastTokenIsEENumber()) {
       pushToken('', '*');
     }
   
@@ -376,7 +376,7 @@ function handlePercent() {
 
 function handleLnOrExp() {
   if (secondMode) {
-    if (needsImplicitMultiplyBefore('e^(')) {
+    if (needsImplicitMultiplyBefore('e^(') && !lastTokenIsEENumber()) {
       pushToken('', '*');
     }
   
@@ -401,7 +401,7 @@ function handleClrvarOrMemvar() {
 function handleSqrtOrSquare() {
   if (secondMode) {
     // √ (prefix with implicit multiply)
-    if (needsImplicitMultiplyBefore('√(')) {
+    if (needsImplicitMultiplyBefore('√(') && !lastTokenIsEENumber()) {
     pushToken('', '*'); 
     }
     pushToken('√(', '__SQRT__');
@@ -463,7 +463,7 @@ function recallValue() {
   );
 
   // Implicit multiplication if needed (e.g., 2 RCL → 2×value)
-  if (needsImplicitMultiplyBefore(valueStr)) {
+  if (needsImplicitMultiplyBefore(valueStr) && !lastTokenIsEENumber()) {
     pushToken('', '*');
   }
 
@@ -1109,7 +1109,7 @@ function toDegrees(rad) {
 function handleSin() {
   if (justEvaluated) injectANS();
 
-  if (needsImplicitMultiplyBefore('sin(')) {
+  if (needsImplicitMultiplyBefore('sin(') && !lastTokenIsEENumber()) {
     pushToken('', '*');
   }
 
@@ -1133,7 +1133,7 @@ function handleSin() {
 function handleCos() {
   if (justEvaluated) injectANS();
 
-  if (needsImplicitMultiplyBefore('cos(')) {
+  if (needsImplicitMultiplyBefore('cos(') && !lastTokenIsEENumber()) {
     pushToken('', '*');
   }
 
@@ -1157,7 +1157,7 @@ function handleCos() {
 function handleTan() {
   if (justEvaluated) injectANS();
 
-  if (needsImplicitMultiplyBefore('tan(')) {
+  if (needsImplicitMultiplyBefore('tan(') && !lastTokenIsEENumber()) {
     pushToken('', '*');
   }
 
@@ -1333,6 +1333,14 @@ document.addEventListener("keydown", async (e) => {
   }
 });
 
+function lastTokenIsEENumber() {
+  if (tokenStack.length === 0) return false;
+
+  const lastEval = tokenStack[tokenStack.length - 1].evalPart;
+
+  // Matches things like 7.3e-5, 1e10, -2.1e+3
+  return /^[+-]?\d+(\.\d+)?e[+-]?\d+$/i.test(lastEval);
+}
 
 
 
