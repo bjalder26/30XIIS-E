@@ -21,8 +21,7 @@ const MAX_EXPR_NUMBER_CHARS = 10; // numbers inserted into expression
 const MAX_SCI_MANTISSA_DIGITS = 6;
 let hypMode = false;
 const TRIG_EPSILON = 1e-12;
-
-
+let isPoweredOn = true;
 
 // EE state
 let eeMode = false;
@@ -33,6 +32,8 @@ let justEvaluated = false;
 const exprEl = document.getElementById('display-expression');
 const mainEl = document.getElementById('display-main');
 const btnSecond = document.getElementById('btnSecond');
+const keysEl = document.querySelector('.keys');
+const buttons = Array.from(keysEl.children);
 
 /* ---------- Number Entry ---------- */
 function inputNumber(num) {
@@ -252,10 +253,29 @@ function addParen(p) {
 
 
 function setOperator(op) {
-  finalizeEEIfNeeded();
-  applyEE()
+  // ✅ If we are in EE mode, a '-' should toggle the exponent sign, not finalize EE
+  if (eeMode && (op === '-' || op === '−')) {
+    // same behavior as your (-) key in eeMode
+    if (eeExponentStr.startsWith('-')) {
+      eeExponentStr = eeExponentStr.slice(1);
+    } else {
+      eeExponentStr = '-' + eeExponentStr;
+    }
+    updateDisplay();
+    return;
+  }
+
+  // ✅ For any other operator, finalize EE first (so 5E-2 × 3 works)
+  if (eeMode) {
+    applyEE();
+  }
+
+  if (pendingRootIndexToken) {
+    finalizePendingRoot();
+  }
+
   if (justEvaluated) {
-    injectANS();  
+    injectANS();
   }
 
   pushToken(op, op);
@@ -348,6 +368,14 @@ function applyUnary(fnName) {
   updateDisplay();
 }
 
+function handleOnOff() {
+  if (secondMode) {
+    powerOff();
+  } else {
+    powerOn();
+  }
+}
+
 function handleLogOrTenPower() {
   finalizeEEIfNeeded();
   if (secondMode) {
@@ -365,6 +393,15 @@ function handleLogOrTenPower() {
 }
 
 function handleNegativeOrAns() {
+
+  // ✅ If we're in EE mode, let inputNegative handle it
+  // ❌ Do NOT finalize EE here
+  if (eeMode && !secondMode) {
+    inputNegative();
+    return;
+  }
+
+  // ✅ Otherwise, it's safe to finalize EE
   finalizeEEIfNeeded();
 
   if (secondMode) {
@@ -726,20 +763,19 @@ function updateFormatIndicator() {
 }
 
 
-document.addEventListener('DOMContentLoaded', () => {
-  const keysEl = document.querySelector('.keys');
-  if (!keysEl) return;
 
-  keysEl.addEventListener('click', (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
+keysEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
 
-    if (secondMode && btn !== btnSecond) {
-      secondMode = false;
-      btnSecond.classList.remove('second-active');
-    }
-  });
+  if (btn !== btnSecond) {
+    secondMode = false;
+    btnSecond.classList.remove('second-active');
+  }
+
+  /* ---------- button's own onclick runs normally ---------- */
 });
+
 
 function formatDisplay(displayStr) {
   if (!displayStr) return displayStr;
@@ -827,6 +863,7 @@ function canInsertUnaryMinus() {
 }
 
 function inputNegative() {
+  // ✅ If we are entering an EE exponent, toggle exponent sign
   if (eeMode) {
     if (eeExponentStr.startsWith('-')) {
       eeExponentStr = eeExponentStr.slice(1);
@@ -1156,24 +1193,6 @@ function snapTrigResult(x) {
   return x;
 }
 
-/*
-function closeUnmatchedParens(expr) {
-  let open = 0;
-  let close = 0;
-
-  for (const ch of expr) {
-    if (ch === '(') open++;
-    else if (ch === ')') close++;
-  }
-
-  if (open > close) {
-    return expr + ')'.repeat(open - close);
-  }
-
-  return expr;
-}
-*/
-
 document.addEventListener("keydown", async (e) => {
   const isMac = navigator.platform.toUpperCase().includes("MAC");
   const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
@@ -1403,4 +1422,66 @@ function inputANS() {
   updateDisplay();
 }
 
+function powerOff() {
+  // Volatile computation state
+  entry = '';
+  expression = '';
+  tokenStack = [];
+  display = '';
+  justEvaluated = false;
+
+  // EE / root / synthetic state
+  eeMode = false;
+  eeMantissa = '';
+  eeExponentStr = '';
+  pendingRootIndexToken = null;
+  rootRadicandBuffer = '';
+
+  // Modes that reset on power loss
+  //secondMode = false;
+  hypMode = false;
+
+  // Power latch
+  isPoweredOn = false;
+
+  // Blank the displays completely
+  exprEl.textContent = '';
+  mainEl.textContent = '';
+  document.getElementById('display-sto').textContent = '';
+  document.getElementById('display-format').textContent = '';
+  
+  updateHypIndicator();
+  buttons.forEach(key => {
+  if (key.id !== 'btnOnOff') {
+    key.classList.add('off');
+  }
+});
+}
+
+function powerOn() {
+  if (isPoweredOn) return;
+
+  isPoweredOn = true;
+
+  // Calculator wakes up with no expression
+  entry = '';
+  expression = '';
+  tokenStack = [];
+  display = '';
+  justEvaluated = false;
+
+  secondMode = false;
+  hypMode = false;
+
+  updateFormatIndicator();
+  updateHypIndicator();
+  updateStoIndicator();
+
+  updateDisplay();
+  buttons.forEach(key => {
+  if (key.id !== 'btnOnOff') {
+    key.classList.remove('off');
+  }
+});
+}
 

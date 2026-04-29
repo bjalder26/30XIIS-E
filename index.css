@@ -322,3 +322,6 @@ button.hyp-active {
   left: 138px;
 }
 
+.off {
+  pointer-events: none; 
+}
