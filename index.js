@@ -141,7 +141,7 @@ function calculate() {
     applyEE();
 
     let evalExpr = buildEvalFromTokens(tokenStack);
-    
+
     if (!evalExpr || evalExpr.trim() === '') {
       return;
     }
@@ -364,6 +364,18 @@ function handleLogOrTenPower() {
   applyUnary('log');
 }
 
+function handleNegativeOrAns() {
+  finalizeEEIfNeeded();
+
+  if (secondMode) {
+    inputANS();
+    return;
+  }
+
+  inputNegative();
+}
+
+
 function addPercentOrParen() {
   if (secondMode) {
     handlePercent();
@@ -455,7 +467,7 @@ function handleHypOrPi() {
 function storeValue() {
   if (display === '' || display === 'Error') return;
 
-  memoryValue = Number(display);
+  memoryValue = ansValue !== null ? ansValue : Number(display);
   updateStoIndicator();
 }
 
@@ -471,18 +483,20 @@ function recallValue() {
   }
 
   // Convert memory to a string the user can reasonably edit
-  const valueStr = trimNumberString(
+  const entryStr = trimNumberString(
     String(memoryValue),
     MAX_EXPR_NUMBER_CHARS
   );
 
+  const evalStr = String(memoryValue);
+
   // Implicit multiplication if needed (e.g., 2 RCL → 2×value)
-  if (needsImplicitMultiplyBefore(valueStr)) {
+  if (needsImplicitMultiplyBefore(entryStr)) {
     pushToken('', '*');
   }
 
   // Insert recalled value as one atomic token
-  pushToken(valueStr, valueStr);
+  pushToken(entryStr, evalStr);
 
   updateDisplay();
 }
@@ -782,8 +796,13 @@ function popToken() {
 
 
 function injectANS() {
-  const trimmed = trimNumberString(display, MAX_EXPR_NUMBER_CHARS);
-  pushToken(trimmed, trimmed);
+  // Display: user-friendly, trimmed
+  const entryStr = trimNumberString(display, MAX_EXPR_NUMBER_CHARS);
+
+  // Evaluation: full precision
+  const evalStr = String(ansValue);
+
+  pushToken(entryStr, evalStr);
   justEvaluated = false;
 }
 
@@ -808,8 +827,6 @@ function canInsertUnaryMinus() {
 }
 
 function inputNegative() {
-  finalizeEEIfNeeded();
-  // ✅ If we are entering an EE exponent, toggle exponent sign
   if (eeMode) {
     if (eeExponentStr.startsWith('-')) {
       eeExponentStr = eeExponentStr.slice(1);
@@ -820,7 +837,6 @@ function inputNegative() {
     return;
   }
 
-  // Normal unary minus behavior
   if (justEvaluated) {
     injectANS();
   }
@@ -1359,5 +1375,32 @@ function consumeArgument(tokens, start) {
   };
 }
 
+function inputANS() {
+  // If no previous answer, do nothing
+  if (ansValue === null || !isFinite(ansValue)) return;
+
+  // If last action was '=', start fresh unless chaining
+  if (justEvaluated) {
+    entry = '';
+    expression = '';
+    tokenStack = [];
+    justEvaluated = false;
+  }
+
+  // Implicit multiplication (e.g., 2ANS)
+  const entryStr = trimNumberString(
+    String(ansValue),
+    MAX_EXPR_NUMBER_CHARS
+  );
+
+  if (needsImplicitMultiplyBefore(entryStr)) {
+    pushToken('', '*');
+  }
+
+  // ✅ Display rounded, evaluate full precision
+  pushToken(entryStr, String(ansValue));
+
+  updateDisplay();
+}
 
 

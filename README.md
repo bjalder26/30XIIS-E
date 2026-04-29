@@ -2,12 +2,16 @@
 An emulator for the TI-30XIIS* user interface
 
 * Buttons/functions that are grayed out don't work.
+
 * STO► only stores 1 number => no menu
 * STO► number is displayed at the bottom
-* CLRVAR clears out the stored number (as does reset, which clears all modes).
-* SCI/ENG will cycle through SCI → ENG → FLO rather than bringing up a menu like you would see with a TI-30XIIS.
-* ans works a bit differently (the ans button does nothing), but 
+* CLRVAR clears out the stored number (as does reset, which also clears all modes).
+* ans works a bit differently, the previous answer is carried forward as a number (instead of as "ans") => better for students to follow
+* Values displayed for STO► and ans get rounded, but the value carried forward is precise.
+
 * Scientific notation is displayed differently (e.g. 1.23E45).
+* SCI/ENG will cycle through SCI → ENG → FLO rather than bringing up a menu like you would see with a TI-30XIIS.
+* As the display fills with numbers the nubers shrink, then scroll to accommodate new entries
 
 The emulator is geared towards being useful for teaching rather than strictly adhearing to how the TI-30XIIS functions.
 
