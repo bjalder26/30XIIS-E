@@ -62,7 +62,7 @@ function inputNumber(num) {
 
   // ✅ IMPLICIT MULTIPLY GOES HERE
   // This fixes: π2, (2)3, (2)(3)
-  if (needsImplicitMultiplyBefore(num) && !lastTokenIsEENumber()) {
+  if (needsImplicitMultiplyBefore(num)) {
     pushToken('', '*');
   }
 
@@ -121,6 +121,14 @@ function applyEE() {
   rebuildEntry();
 }
 
+
+function finalizeEEIfNeeded() {
+  if (eeMode) {
+    applyEE();
+  }
+}
+
+
 /* ---------- Operators ---------- */
 function calculate() {
   // ✅ Case: no pending expression
@@ -132,8 +140,14 @@ function calculate() {
     finalizePendingRoot();
     applyEE();
 
-    let evalExpr = expandPrefixFunctions(expression);
+    let evalExpr = buildEvalFromTokens(tokenStack);
+    
+    if (!evalExpr || evalExpr.trim() === '') {
+      return;
+    }
 
+
+    // Defensive normalization (mostly redundant with token-based eval)
     evalExpr = evalExpr
       .replace(/×/g, '*')
       .replace(/÷/g, '/')
@@ -141,18 +155,10 @@ function calculate() {
       .replace(/\^/g, '**')
       .replace(/π/g, 'Math.PI');
 
-    evalExpr = wrapFunctionArg(evalExpr, 'Math.sin',  'toRadians');
-    evalExpr = wrapFunctionArg(evalExpr, 'Math.cos',  'toRadians');
-    evalExpr = wrapFunctionArg(evalExpr, 'Math.tan',  'toRadians');
-
-    evalExpr = wrapFunctionArg(evalExpr, 'Math.asin', 'toDegrees');
-    evalExpr = wrapFunctionArg(evalExpr, 'Math.acos', 'toDegrees');
-    evalExpr = wrapFunctionArg(evalExpr, 'Math.atan', 'toDegrees');
-
     // ✅ Auto-close assumed parentheses
-    evalExpr = closeUnmatchedParens(evalExpr);
+    //evalExpr = closeUnmatchedParens(evalExpr);
 
-    let result = Function('"use strict"; return (' + evalExpr + ')')();
+    let result = Function('"use strict"; return (' + evalExpr + ')')(); // this is were the calculation occurs
 
     result = snapTrigResult(result);
 
@@ -224,7 +230,7 @@ function inputPi() {
   if (justEvaluated) clearAll();
 
   // ✅ Symmetric implicit multiplication
-  if (needsImplicitMultiplyBefore('π') && !lastTokenIsEENumber()) {
+  if (needsImplicitMultiplyBefore('π')) {
     pushToken('', '*');
   }
 
@@ -233,9 +239,10 @@ function inputPi() {
 }
 
 function addParen(p) {
+  finalizeEEIfNeeded();
   finalizePendingRoot();
 
-  if (p === '(' && needsImplicitMultiplyBefore('(') && !lastTokenIsEENumber()) {
+  if (p === '(' && needsImplicitMultiplyBefore('(')) {
     pushToken('', '*');
   }
 
@@ -245,6 +252,8 @@ function addParen(p) {
 
 
 function setOperator(op) {
+  finalizeEEIfNeeded();
+  applyEE()
   if (justEvaluated) {
     injectANS();  
   }
@@ -324,7 +333,8 @@ function updateDisplay() {
 }
 
 function applyUnary(fnName) {
-  if (needsImplicitMultiplyBefore(fnName + '(') && !lastTokenIsEENumber()) {
+  finalizeEEIfNeeded();
+  if (needsImplicitMultiplyBefore(fnName + '(')) {
     pushToken('', '*');
   }
 
@@ -339,8 +349,9 @@ function applyUnary(fnName) {
 }
 
 function handleLogOrTenPower() {
+  finalizeEEIfNeeded();
   if (secondMode) {
-    if (needsImplicitMultiplyBefore('₁₀^(') && !lastTokenIsEENumber()) {
+    if (needsImplicitMultiplyBefore('₁₀^(')) {
       pushToken('', '*');
     }
   
@@ -362,6 +373,7 @@ function addPercentOrParen() {
 }
 
 function handlePercent() {
+  finalizeEEIfNeeded();
   if (justEvaluated) {
     injectANS();
   }
@@ -375,8 +387,9 @@ function handlePercent() {
 }
 
 function handleLnOrExp() {
+  finalizeEEIfNeeded();
   if (secondMode) {
-    if (needsImplicitMultiplyBefore('e^(') && !lastTokenIsEENumber()) {
+    if (needsImplicitMultiplyBefore('e^(')) {
       pushToken('', '*');
     }
   
@@ -399,9 +412,10 @@ function handleClrvarOrMemvar() {
 }
 
 function handleSqrtOrSquare() {
+  finalizeEEIfNeeded();
   if (secondMode) {
     // √ (prefix with implicit multiply)
-    if (needsImplicitMultiplyBefore('√(') && !lastTokenIsEENumber()) {
+    if (needsImplicitMultiplyBefore('√(')) {
     pushToken('', '*'); 
     }
     pushToken('√(', '__SQRT__');
@@ -463,7 +477,7 @@ function recallValue() {
   );
 
   // Implicit multiplication if needed (e.g., 2 RCL → 2×value)
-  if (needsImplicitMultiplyBefore(valueStr) && !lastTokenIsEENumber()) {
+  if (needsImplicitMultiplyBefore(valueStr)) {
     pushToken('', '*');
   }
 
@@ -513,6 +527,7 @@ function handleNthRoot() {
 }
 
 function handlePowerOrNthRoot() {
+  finalizeEEIfNeeded();
   if (justEvaluated) {
     injectANS();
   }
@@ -773,110 +788,6 @@ function injectANS() {
 }
 
 
-/*
-function normalizeScientificDisplay(str) {
-  const match = str.match(/^(-?\d+(\.\d+)?)(e[+-]?\d+)$/i);
-  if (!match) return str;
-
-  let mantissa = match[1];
-  const exponent = match[3];
-
-  // Limit mantissa to ~8 significant digits
-  if (mantissa.length > 10) {
-    mantissa = Number(mantissa).toPrecision(8);
-  }
-
-  return mantissa + exponent;
-}
-*/ 
-
-function expandPrefix(expr, marker, fnName) {
-  const idx = expr.indexOf(marker);
-  if (idx === -1) return expr;
-
-  const before = expr.slice(0, idx);
-  let after = expr.slice(idx + marker.length);
-
-  // ✅ Strip trailing ')' that close the implicit prefix argument
-  // These will be replaced by the explicit wrapping below
-  while (after.endsWith(')')) {
-    after = after.slice(0, -1);
-  }
-
-  return (
-    before +
-    fnName +
-    '(' +
-    after +
-    ')'
-  );
-}
-
-function expandPrefixFunctions(expr) {
-  // logarithms / powers
-  while (expr.includes('__LOG__')) {
-    expr = expandPrefix(expr, '__LOG__', 'Math.log10');
-  }
-  while (expr.includes('__LN__')) {
-    expr = expandPrefix(expr, '__LN__', 'Math.log');
-  }
-  while (expr.includes('__SQRT__')) {
-    expr = expandPrefix(expr, '__SQRT__', 'Math.sqrt');
-  }
-  while (expr.includes('__TENPOW__')) {
-    expr = expandPrefix(expr, '__TENPOW__', '10**');
-  }
-  while (expr.includes('__EPOW__')) {
-    expr = expandPrefix(expr, '__EPOW__', 'Math.exp');
-  }
-
-  // trig
-  while (expr.includes('__SIN__')) {
-    expr = expandPrefix(expr, '__SIN__', 'Math.sin');
-  }
-  while (expr.includes('__COS__')) {
-    expr = expandPrefix(expr, '__COS__', 'Math.cos');
-  }
-  while (expr.includes('__TAN__')) {
-    expr = expandPrefix(expr, '__TAN__', 'Math.tan');
-  }
-
-  // inverse trig
-  while (expr.includes('__ASIN__')) {
-    expr = expandPrefix(expr, '__ASIN__', 'Math.asin');
-  }
-  while (expr.includes('__ACOS__')) {
-    expr = expandPrefix(expr, '__ACOS__', 'Math.acos');
-  }
-  while (expr.includes('__ATAN__')) {
-    expr = expandPrefix(expr, '__ATAN__', 'Math.atan');
-  }
-
-
-  while (expr.includes('__SINH__')) {
-    expr = expandPrefix(expr, '__SINH__', 'Math.sinh');
-  }
-  while (expr.includes('__COSH__')) {
-    expr = expandPrefix(expr, '__COSH__', 'Math.cosh');
-  }
-  while (expr.includes('__TANH__')) {
-    expr = expandPrefix(expr, '__TANH__', 'Math.tanh');
-  }
-
-  while (expr.includes('__ASINH__')) {
-    expr = expandPrefix(expr, '__ASINH__', 'Math.asinh');
-  }
-  while (expr.includes('__ACOSH__')) {
-    expr = expandPrefix(expr, '__ACOSH__', 'Math.acosh');
-  }
-  while (expr.includes('__ATANH__')) {
-    expr = expandPrefix(expr, '__ATANH__', 'Math.atanh');
-  }
-
-
-  return expr;
-}
-
 function canInsertUnaryMinus() {
   // Start of expression
   if (tokenStack.length === 0) return true;
@@ -897,6 +808,7 @@ function canInsertUnaryMinus() {
 }
 
 function inputNegative() {
+  finalizeEEIfNeeded();
   // ✅ If we are entering an EE exponent, toggle exponent sign
   if (eeMode) {
     if (eeExponentStr.startsWith('-')) {
@@ -919,15 +831,6 @@ function inputNegative() {
   updateDisplay();
 }
 
-function countParens(str) {
-  let open = 0;
-  let close = 0;
-  for (const ch of str) {
-    if (ch === '(') open++;
-    else if (ch === ')') close++;
-  }
-  return { open, close };
-}
 
 function finalizePendingRoot() {
   if (!pendingRootIndexToken) return;
@@ -967,6 +870,7 @@ function isPrefixOpener(token) {
 }
 
 function extractNumericLiteral() {
+  if (eeMode) return null;
   let mantissaParts = [];
 
   while (tokenStack.length > 0) {
@@ -1107,9 +1011,10 @@ function toDegrees(rad) {
 }
 
 function handleSin() {
+  finalizeEEIfNeeded();
   if (justEvaluated) injectANS();
 
-  if (needsImplicitMultiplyBefore('sin(') && !lastTokenIsEENumber()) {
+  if (needsImplicitMultiplyBefore('sin(')) {
     pushToken('', '*');
   }
 
@@ -1131,9 +1036,10 @@ function handleSin() {
 }
 
 function handleCos() {
+  finalizeEEIfNeeded();
   if (justEvaluated) injectANS();
 
-  if (needsImplicitMultiplyBefore('cos(') && !lastTokenIsEENumber()) {
+  if (needsImplicitMultiplyBefore('cos(')) {
     pushToken('', '*');
   }
 
@@ -1155,9 +1061,10 @@ function handleCos() {
 }
 
 function handleTan() {
+  finalizeEEIfNeeded();
   if (justEvaluated) injectANS();
 
-  if (needsImplicitMultiplyBefore('tan(') && !lastTokenIsEENumber()) {
+  if (needsImplicitMultiplyBefore('tan(')) {
     pushToken('', '*');
   }
 
@@ -1176,18 +1083,6 @@ function handleTan() {
   }
 
   updateDisplay();
-}
-
-function canInsertCloseParen() {
-  let open = 0;
-  let close = 0;
-
-  for (const ch of expression) {
-    if (ch === '(') open++;
-    else if (ch === ')') close++;
-  }
-
-  return close < open;
 }
 
 function toggleHyp() {
@@ -1245,6 +1140,7 @@ function snapTrigResult(x) {
   return x;
 }
 
+/*
 function closeUnmatchedParens(expr) {
   let open = 0;
   let close = 0;
@@ -1260,51 +1156,7 @@ function closeUnmatchedParens(expr) {
 
   return expr;
 }
-
-function wrapFunctionArg(expr, fnName, wrapper) {
-  let idx = expr.indexOf(fnName + '(');
-
-  while (idx !== -1) {
-    const openParen = idx + fnName.length;
-    let closeParen = findMatchingParen(expr, openParen);
-
-    // ✅ If no closing ')', assume argument runs to end
-    if (closeParen === -1) {
-      closeParen = expr.length;
-    }
-
-    const before = expr.slice(0, idx);
-    const arg = expr.slice(openParen + 1, closeParen);
-    const after = expr.slice(closeParen + 1);
-
-    expr =
-      before +
-      fnName +
-      '(' +
-      wrapper +
-      '(' +
-      arg +
-      '))' +
-      after;
-
-    idx = expr.indexOf(fnName + '(', idx + 1);
-  }
-
-  return expr;
-}
-
-function findMatchingParen(str, openIndex) {
-  let depth = 0;
-
-  for (let i = openIndex; i < str.length; i++) {
-    if (str[i] === '(') depth++;
-    else if (str[i] === ')') depth--;
-
-    if (depth === 0) return i;
-  }
-
-  return -1; // no match
-}
+*/
 
 document.addEventListener("keydown", async (e) => {
   const isMac = navigator.platform.toUpperCase().includes("MAC");
@@ -1333,15 +1185,179 @@ document.addEventListener("keydown", async (e) => {
   }
 });
 
-function lastTokenIsEENumber() {
-  if (tokenStack.length === 0) return false;
+function buildEvalFromTokens(tokens) {
+  let out = [];
+  let i = 0;
 
-  const lastEval = tokenStack[tokenStack.length - 1].evalPart;
+  while (i < tokens.length) {
+    const t = tokens[i];
 
-  // Matches things like 7.3e-5, 1e10, -2.1e+3
-  return /^[+-]?\d+(\.\d+)?e[+-]?\d+$/i.test(lastEval);
+    switch (t.evalPart) {
+
+      /* ---------- LOGARITHMS ---------- */
+
+      case '__LOG__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.log10(${expr})`);
+        i = nextIndex;
+        break;
+      }
+
+      case '__LN__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.log(${expr})`);
+        i = nextIndex;
+        break;
+      }
+
+      /* ---------- POWERS / ROOTS ---------- */
+
+      case '__SQRT__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.sqrt(${expr})`);
+        i = nextIndex;
+        break;
+      }
+
+      case '__TENPOW__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`10**(${expr})`);
+        i = nextIndex;
+        break;
+      }
+
+      case '__EPOW__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.exp(${expr})`);
+        i = nextIndex;
+        break;
+      }
+
+      /* ---------- TRIG (DEGREES) ---------- */
+
+      case '__SIN__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.sin(toRadians(${expr}))`);
+        i = nextIndex;
+        break;
+      }
+
+      case '__COS__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.cos(toRadians(${expr}))`);
+        i = nextIndex;
+        break;
+      }
+
+      case '__TAN__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.tan(toRadians(${expr}))`);
+        i = nextIndex;
+        break;
+      }
+
+      /* ---------- INVERSE TRIG ---------- */
+
+      case '__ASIN__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`toDegrees(Math.asin(${expr}))`);
+        i = nextIndex;
+        break;
+      }
+
+      case '__ACOS__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`toDegrees(Math.acos(${expr}))`);
+        i = nextIndex;
+        break;
+      }
+
+      case '__ATAN__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`toDegrees(Math.atan(${expr}))`);
+        i = nextIndex;
+        break;
+      }
+
+      /* ---------- HYPERBOLIC ---------- */
+
+      case '__SINH__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.sinh(${expr})`);
+        i = nextIndex;
+        break;
+      }
+
+      case '__COSH__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.cosh(${expr})`);
+        i = nextIndex;
+        break;
+      }
+
+      case '__TANH__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.tanh(${expr})`);
+        i = nextIndex;
+        break;
+      }
+
+      case '__ASINH__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.asinh(${expr})`);
+        i = nextIndex;
+        break;
+      }
+
+      case '__ACOSH__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.acosh(${expr})`);
+        i = nextIndex;
+        break;
+      }
+
+      case '__ATANH__': {
+        const { expr, nextIndex } = consumeArgument(tokens, i + 1);
+        out.push(`Math.atanh(${expr})`);
+        i = nextIndex;
+        break;
+      }
+
+      /* ---------- DEFAULT ---------- */
+
+      default:
+        out.push(t.evalPart);
+        i++;
+    }
+  }
+
+  return out.join('');
 }
 
+function consumeArgument(tokens, start) {
+  let parts = [];
+  let i = start;
+
+  for (; i < tokens.length; i++) {
+    const t = tokens[i];
+
+    // Explicit closing parenthesis
+    if (t.entryPart === ')') {
+      return {
+        expr: parts.join(''),
+        nextIndex: i + 1
+      };
+    }
+
+    parts.push(t.evalPart);
+  }
+
+  // ✅ Implicit close at end-of-input
+  return {
+    expr: parts.join(''),
+    nextIndex: i
+  };
+}
 
 
 
