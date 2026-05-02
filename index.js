@@ -159,7 +159,7 @@ function calculate() {
     // ✅ Auto-close assumed parentheses
     //evalExpr = closeUnmatchedParens(evalExpr);
 
-    let result = Function('"use strict"; return (' + evalExpr + ')')(); // this is were the calculation occurs
+    const  result = Function('"use strict"; return (' + evalExpr + ')')(); // this is were the calculation occurs
 
     // ✅ Store ANS numerically
     ansValue = Number(result);
@@ -1293,7 +1293,7 @@ function buildEvalFromTokens(tokens) {
 
       case '__ASIN__': {
         const { expr, nextIndex } = consumeArgument(tokens, i + 1);
-        out.push(snapTrigResult(`toDegrees(Math.asin(${expr})))`);
+        out.push(`snapTrigResult(toDegrees(Math.asin(${expr})))`);
         i = nextIndex;
         break;
       }
