@@ -161,8 +161,6 @@ function calculate() {
 
     let result = Function('"use strict"; return (' + evalExpr + ')')(); // this is were the calculation occurs
 
-    result = snapTrigResult(result);
-
     // ✅ Store ANS numerically
     ansValue = Number(result);
 
@@ -1272,21 +1270,21 @@ function buildEvalFromTokens(tokens) {
 
       case '__SIN__': {
         const { expr, nextIndex } = consumeArgument(tokens, i + 1);
-        out.push(`Math.sin(toRadians(${expr}))`);
+        out.push(`snapTrigResult(Math.sin(toRadians(${expr})))`);
         i = nextIndex;
         break;
       }
 
       case '__COS__': {
         const { expr, nextIndex } = consumeArgument(tokens, i + 1);
-        out.push(`Math.cos(toRadians(${expr}))`);
+        out.push(`snapTrigResult(Math.cos(toRadians(${expr})))`);
         i = nextIndex;
         break;
       }
 
       case '__TAN__': {
         const { expr, nextIndex } = consumeArgument(tokens, i + 1);
-        out.push(`Math.tan(toRadians(${expr}))`);
+        out.push(`snapTrigResult(Math.tan(toRadians(${expr})))`);
         i = nextIndex;
         break;
       }
@@ -1295,21 +1293,21 @@ function buildEvalFromTokens(tokens) {
 
       case '__ASIN__': {
         const { expr, nextIndex } = consumeArgument(tokens, i + 1);
-        out.push(`toDegrees(Math.asin(${expr}))`);
+        out.push(snapTrigResult(`toDegrees(Math.asin(${expr})))`);
         i = nextIndex;
         break;
       }
 
       case '__ACOS__': {
         const { expr, nextIndex } = consumeArgument(tokens, i + 1);
-        out.push(`toDegrees(Math.acos(${expr}))`);
+        out.push(`snapTrigResult(toDegrees(Math.acos(${expr})))`);
         i = nextIndex;
         break;
       }
 
       case '__ATAN__': {
         const { expr, nextIndex } = consumeArgument(tokens, i + 1);
-        out.push(`toDegrees(Math.atan(${expr}))`);
+        out.push(`snapTrigResult(toDegrees(Math.atan(${expr})))`);
         i = nextIndex;
         break;
       }
