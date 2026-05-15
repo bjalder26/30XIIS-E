@@ -1,9 +1,9 @@
 const CACHE_NAME = "30XIIS-E-v1";
 const urlsToCache = [
-  "/",
-  "/index.html",
-  "/index.css",
-  "/index.js"
+  "./",
+  "./index.html",
+  "./index.css",
+  "./index.js"
 ];
 
 // Install: cache files
